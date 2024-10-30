@@ -140,4 +140,6 @@ endif
 DEBUGFLAGS ?= $(FFLAGS)
 Debug: FFLAGS = $(DEBUGFLAGS)
 
+FFLAGS += -g -pg
+
 include ./Makefile_main
