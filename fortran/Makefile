@@ -49,9 +49,9 @@ endif
 
 
 ifeq ($(shell test $(ifortVer_major) -gt 15; echo $$?),0)
-COMMON_FFLAGS = -fpp -qopenmp
+COMMON_FFLAGS = -fpp 
 else
-COMMON_FFLAGS = -fpp -openmp
+COMMON_FFLAGS = -fpp 
 endif
 COMMON_FFLAGS += -gen-dep=$$*.d
 
@@ -91,7 +91,7 @@ ifeq "$(gfortErr)" "0"
 compiler_ver = $(shell gfortran -dumpversion 2>&1)
 COMPILER = gfortran
 F90C     = gfortran
-COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 
 # Using -ffast-math causes differences between Debug and Release configurations.
 FFLAGS = -O3 $(COMMON_FFLAGS)
 DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
