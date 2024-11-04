@@ -268,6 +268,8 @@
         if (DebugMsgs .and. Feedbacklevel > 0) call WriteFormat('Set %d integration k values',ThisCT%q%npoints)
 
         !Begin k-loop and integrate Sources*Bessels over time
+        !$acc parallel loop gang vector(4) default(present)
+        | need to add specific copy copyin etc etc
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
         do q_ix=1,ThisCT%q%npoints
             call SourceToTransfers(ThisCT, q_ix)
