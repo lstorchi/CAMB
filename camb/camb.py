@@ -291,6 +291,16 @@ def run_ini(ini_filename, no_validate=False):
         config.check_global_error('run_ini')
 
 
+def write_ini(params, filename):
+    """
+    Write a CAMBparams instance to a .ini file
+
+    :param params: :class:`.model.CAMBparams` instance
+    :param filename: path of the .ini file to write
+    """
+    print(params)
+
+
 def read_ini(ini_filename, no_validate=False):
     """
     Get a :class:`.model.CAMBparams` instance using parameter specified in a .ini parameter file.
