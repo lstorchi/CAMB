@@ -298,6 +298,7 @@ def write_ini(params, filename):
     :param params: :class:`.model.CAMBparams` instance
     :param filename: path of the .ini file to write
     """
+
     print(params)
 
 
