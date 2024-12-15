@@ -222,8 +222,50 @@
 
     logical function CAMB_WriteIniFile(P, IniFile)
 
-    Type(CAMBParams) :: P
+    Type(CAMBParams), intent(in) :: P
     character(len=Ini_max_string_len), intent(in) :: IniFile
+    integer :: fp
+
+    open(newunit=fp, file=IniFile, status='unknown')
+
+    if (fp == 0) then
+        write(*,*) 'Error opening file ', IniFile
+        CAMB_WriteIniFile = .false.
+        return
+    end if
+
+    write(fp,'(g0)') '# CAMB parameter file'
+
+    if (P%WantScalars) then
+        write(fp,'(A)') 'get_scalar_cls = T'
+    else
+        write(fp,'(A)') 'get_scalar_cls = F'
+    end if    
+    if (P%WantVectors) then
+        write(fp,'(A)') 'get_vector_cls = T'
+    else
+        write(fp,'(A)') 'get_vector_cls = F'
+    end if
+    if (P%WantTensors) then
+        write(fp,'(A)') 'get_tensor_cls = T'
+    else
+        write(fp,'(A)') 'get_tensor_cls = F'
+    end if
+
+    if (P%Want_CMB) then
+        write(fp,'(A)') 'want_CMB = T'
+    else
+        write(fp,'(A)') 'want_CMB = F'
+    end if
+    if (P%Want_CMB_lensing) then
+        write(fp,'(A)') 'want_CMB_lensing = T'
+    else
+        write(fp,'(A)') 'want_CMB_lensing = F'
+    end if
+
+    ! to be continued see TODO in readini function
+
+    close(fp)
 
     CAMB_WriteIniFile = .true.
 
@@ -276,7 +318,8 @@
 
     P%Want_CMB =  Ini%Read_Logical('want_CMB',.true.)
     P%Want_CMB_lensing =  P%Want_CMB .or. Ini%Read_Logical('want_CMB_lensing',.true.)
-
+    
+    ! from here on TODO write
     if (P%WantScalars) then
         num_redshiftwindows = Ini%Read_Int('num_redshiftwindows',0)
     else
