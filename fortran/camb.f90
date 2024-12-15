@@ -220,6 +220,15 @@
 
     end subroutine CAMB_SetDefParams
 
+    logical function CAMB_WriteIniFile(P, IniFile)
+
+    Type(CAMBParams) :: P
+    character(len=Ini_max_string_len), intent(in) :: IniFile
+
+    CAMB_WriteIniFile = .true.
+
+    end function CAMB_WriteIniFile
+
     logical function CAMB_ReadParamFile(P, InputFile, InpLen)
     Type(CAMBParams) :: P
     integer, intent(in) :: InpLen
