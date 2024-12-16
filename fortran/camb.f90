@@ -225,6 +225,7 @@
     Type(CAMBParams), intent(in) :: P
     character(len=Ini_max_string_len), intent(in) :: IniFile
     integer :: fp, num_redshiftwindows
+    logical :: DoCounts
 
     open(newunit=fp, file=IniFile, status='unknown')
 
@@ -282,14 +283,25 @@
         write(fp,'(A,I0)') 'limber_phiphi = ', P%SourceTerms%limber_phi_lmin
     end if
 
+    if (num_redshiftwindows > 0) then
+        if (P%SourceTerms%counts_lensing) then
+            write(fp,'(A)') 'DoRedshiftLensing = T'
+        else
+            write(fp,'(A)') 'DoRedshiftLensing = F'
+        end if
+
+        write(fp,'(A,F10.4)') 'Kmax_Boost = ', P%Accuracy%KmaxBoost
+    end if
+
+    if (P%Do21cm) then
+        write(fp,'(A)') 'Do21cm = T'
+    else
+        write(fp,'(A)') 'Do21cm = F'
+    end if
+    DoCounts = .false.
+
+
 !    to be continued 
-!    if (num_redshiftwindows > 0) then
-!        allocate(P%SourceWindows(num_redshiftwindows))
-!        P%SourceTerms%counts_lensing = Ini%Read_Logical('DoRedshiftLensing', .false.)
-!        call Ini%Read('Kmax_Boost', P%Accuracy%KmaxBoost)
-!    end if
-!    P%Do21cm = Ini%Read_Logical('Do21cm', .false.)
-!    DoCounts = .false.
 !    do i=1, num_redshiftwindows
 !        allocate(TGaussianSourceWindow::P%SourceWindows(i)%Window)
 !        select type (RedWin=>P%SourceWindows(i)%Window)
