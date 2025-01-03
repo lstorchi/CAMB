@@ -184,6 +184,20 @@
 
     end subroutine CAMB_GetCls
 
+    ! I will move it 
+    subroutine WriteBool(fp, name, value)
+    integer, intent(in) :: fp
+    character(len=*), intent(in) :: name
+    logical, intent(in) :: value
+
+    if (value) then
+        write(fp,'(A)') name//' = T'
+    else
+        write(fp,'(A)') name//' = F'
+    end if
+
+    end subroutine WriteBool
+
     function CAMB_GetAge(P)
     !Return age in Julian gigayears, returns -1 on error
     type(CAMBparams), intent(in) :: P
@@ -224,7 +238,7 @@
 
     Type(CAMBParams), intent(in) :: P
     character(len=Ini_max_string_len), intent(in) :: IniFile
-    integer :: fp, num_redshiftwindows
+    integer :: fp, num_redshiftwindows, i
     logical :: DoCounts
 
     open(newunit=fp, file=IniFile, status='unknown')
@@ -237,32 +251,12 @@
 
     write(fp,'(g0)') '# CAMB parameter file'
 
-    if (P%WantScalars) then
-        write(fp,'(A)') 'get_scalar_cls = T'
-    else
-        write(fp,'(A)') 'get_scalar_cls = F'
-    end if    
-    if (P%WantVectors) then
-        write(fp,'(A)') 'get_vector_cls = T'
-    else
-        write(fp,'(A)') 'get_vector_cls = F'
-    end if
-    if (P%WantTensors) then
-        write(fp,'(A)') 'get_tensor_cls = T'
-    else
-        write(fp,'(A)') 'get_tensor_cls = F'
-    end if
+    call WriteBool(fp, 'get_scalar_cls', P%WantScalars)
+    call WriteBool(fp, 'get_vector_cls', P%WantVectors)
+    call WriteBool(fp, 'get_tensor_cls', P%WantTensors)
 
-    if (P%Want_CMB) then
-        write(fp,'(A)') 'want_CMB = T'
-    else
-        write(fp,'(A)') 'want_CMB = F'
-    end if
-    if (P%Want_CMB_lensing) then
-        write(fp,'(A)') 'want_CMB_lensing = T'
-    else
-        write(fp,'(A)') 'want_CMB_lensing = F'
-    end if
+    call WriteBool (fp, 'want_CMB', P%Want_CMB)
+    call WriteBool (fp, 'want_CMB_lensing', P%Want_CMB_lensing)
 
     if (P%WantScalars) then
         if (allocated(P%SourceWindows)) then
@@ -273,33 +267,19 @@
         write(fp,'(A,I0)') 'num_redshiftwindows = ', num_redshiftwindows
     end if
 
-    if (P%SourceTerms%limber_windows) then
-        write(fp,'(A)') 'limber_windows = T'
-    else
-        write(fp,'(A)') 'limber_windows = F'
-    end if
+    call WriteBool(fp, 'limber_windows', P%SourceTerms%limber_windows)
 
     if (P%SourceTerms%limber_windows) then
         write(fp,'(A,I0)') 'limber_phiphi = ', P%SourceTerms%limber_phi_lmin
     end if
 
     if (num_redshiftwindows > 0) then
-        if (P%SourceTerms%counts_lensing) then
-            write(fp,'(A)') 'DoRedshiftLensing = T'
-        else
-            write(fp,'(A)') 'DoRedshiftLensing = F'
-        end if
-
+        call WriteBool(fp, 'DoRedshiftLensing', P%SourceTerms%counts_lensing)
         write(fp,'(A,F10.4)') 'Kmax_Boost = ', P%Accuracy%KmaxBoost
     end if
 
-    if (P%Do21cm) then
-        write(fp,'(A)') 'Do21cm = T'
-    else
-        write(fp,'(A)') 'Do21cm = F'
-    end if
+    call WriteBool(fp, 'Do21cm', P%Do21cm)
     DoCounts = .false.
-
 
 !    to be continued 
 !    do i=1, num_redshiftwindows
@@ -340,86 +320,59 @@
 !            call MpiStop('Probable compiler bug')
 !        end select
 !    end do
-!
-!
-!    if (P%Do21cm) then
-!        call Ini%Read('line_basic',P%SourceTerms%line_basic)
-!        call Ini%Read('line_distortions',P%SourceTerms%line_distortions)
-!        call Ini%Read('line_extra',P%SourceTerms%line_extra)
-!        call Ini%Read('line_phot_dipole',P%SourceTerms%line_phot_dipole)
-!        call Ini%Read('line_phot_quadrupole',P%SourceTerms%line_phot_quadrupole)
-!        call Ini%Read('line_reionization',P%SourceTerms%line_reionization)
-!
-!        call Ini%Read('use_mK',P%SourceTerms%use_21cm_mK)
-!        if (DebugMsgs) then
-!            write (*,*) 'Doing 21cm'
-!            write (*,*) 'dipole = ',P%SourceTerms%line_phot_dipole, ' quadrupole =', P%SourceTerms%line_phot_quadrupole
-!        end if
-!    else
-!        P%SourceTerms%line_extra = .false.
-!    end if
-!
-!    if (DoCounts) then
-!        call Ini%Read('counts_density', P%SourceTerms%counts_density)
-!        call Ini%Read('counts_redshift', P%SourceTerms%counts_redshift)
-!        call Ini%Read('counts_radial', P%SourceTerms%counts_radial)
-!        call Ini%Read('counts_evolve', P%SourceTerms%counts_evolve)
-!        call Ini%Read('counts_timedelay', P%SourceTerms%counts_timedelay)
-!        call Ini%Read('counts_ISW', P%SourceTerms%counts_ISW)
-!        call Ini%Read('counts_potential', P%SourceTerms%counts_potential)
-!        call Ini%Read('counts_velocity', P%SourceTerms%counts_velocity)
-!    end if
-!
-!    P%OutputNormalization=outNone
-!
-!    P%WantCls= P%WantScalars .or. P%WantTensors .or. P%WantVectors
-!
-!    PK_WantTransfer = Ini%Read_Logical('get_transfer')
-!
-!    call Ini%Read('accuracy_boost', P%Accuracy%AccuracyBoost)
-!    call Ini%Read('l_accuracy_boost', P%Accuracy%lAccuracyBoost)
-!
-!    P%NonLinear = Ini%Read_Int('do_nonlinear', NonLinear_none)
-!
-!    P%Evolve_baryon_cs = Ini%Read_Logical('evolve_baryon_cs', .false.)
-!    P%Evolve_delta_xe = Ini%Read_Logical('evolve_delta_xe', .false.)
-!    P%Evolve_delta_Ts = Ini%Read_Logical('evolve_delta_ts', .false.)
-!
-!    P%DoLensing = .false.
-!    P%Min_l = Ini%Read_int('l_min',2)
-!    if (P%WantCls) then
-!        if (P%WantScalars  .or. P%WantVectors) then
-!            P%Max_l = Ini%Read_Int('l_max_scalar')
-!            P%Max_eta_k = Ini%Read_Double('k_eta_max_scalar', P%Max_l*2._dl)
-!            if (P%WantScalars) then
-!                P%DoLensing = Ini%Read_Logical('do_lensing', .false.)
-!                if (P%DoLensing) lensing_method = Ini%Read_Int('lensing_method', 1)
-!            end if
-!            if (P%WantVectors) then
-!                if (P%WantScalars .or. P%WantTensors) then
-!                    ErrMsg = 'Must generate vector modes on their own'
-!                    return
-!                end if
-!                i = Ini%Read_Int('vector_mode')
-!                if (i==0) then
-!                    vec_sig0 = 1
-!                    Magnetic = 0
-!                else if (i==1) then
-!                    Magnetic = -1
-!                    vec_sig0 = 0
-!                else
-!                    ErrMsg = 'vector_mode must be 0 (regular) or 1 (magnetic)'
-!                    return
-!                end if
-!            end if
-!        end if
-!
-!        if (P%WantTensors) then
-!            P%Max_l_tensor = Ini%Read_Int('l_max_tensor')
-!            P%Max_eta_k_tensor = Ini%Read_Double('k_eta_max_tensor', Max(500._dl, P%Max_l_tensor * 2._dl))
-!        end if
-!    endif
-!
+
+    if (P%Do21cm) then
+        call WriteBool(fp, 'line_basic', P%SourceTerms%line_basic)
+        call WriteBool(fp, 'line_distortions', P%SourceTerms%line_distortions)
+        call WriteBool(fp, 'line_extra', P%SourceTerms%line_extra)
+        call WriteBool(fp, 'line_phot_dipole', P%SourceTerms%line_phot_dipole)
+        call WriteBool(fp, 'line_phot_quadrupole', P%SourceTerms%line_phot_quadrupole)
+        call WriteBool(fp, 'line_reionization', P%SourceTerms%line_reionization)
+        call WriteBool(fp, 'use_mK', P%SourceTerms%use_21cm_mK)
+    end if
+
+    if (DoCounts) then
+        call WriteBool(fp, 'counts_density' , P%SourceTerms%counts_density)
+        call WriteBool(fp, 'counts_redshift', P%SourceTerms%counts_redshift)
+        call WriteBool(fp, 'counts_radial'  , P%SourceTerms%counts_radial)
+        call WriteBool(fp, 'counts_evolve'  , P%SourceTerms%counts_evolve)
+        call WriteBool(fp, 'counts_timedelay', P%SourceTerms%counts_timedelay)
+        call WriteBool(fp, 'counts_ISW'     , P%SourceTerms%counts_ISW)
+        call WriteBool(fp, 'counts_potential', P%SourceTerms%counts_potential)
+        call WriteBool(fp, 'counts_velocity', P%SourceTerms%counts_velocity)
+    end if     
+
+    call WriteBool(fp, 'get_transfer', P%WantTransfer)
+
+    write(fp,'(A,F10.4)') 'accuracy_boost = ', P%Accuracy%AccuracyBoost
+    write(fp,'(A,F10.4)') 'l_accuracy_boost = ', P%Accuracy%lAccuracyBoost
+    write(fp,'(A,I0)') 'do_nonlinear = ' , P%NonLinear
+
+    call WriteBool(fp, 'evolve_baryon_cs', P%Evolve_baryon_cs)
+    call WriteBool(fp, 'evolve_delta_xe', P%Evolve_delta_xe)
+    call WriteBool(fp, 'evolve_delta_ts', P%Evolve_delta_Ts)
+
+    write(fp,'(A,I2)') 'l_min = ', P%Min_l
+    if (P%WantCls) then
+        write(fp,'(A,I2)') 'l_max_scalar = ', P%Max_l
+        write(fp,'(A,F10.4)') 'k_eta_max_scalar = ', P%Max_eta_k
+        if (P%WantScalars  .or. P%WantVectors) then
+            call WriteBool(fp, 'do_lensing', P%DoLensing)
+            if (P%DoLensing) then
+                write(fp,'(A,I1)') 'lensing_method = ', lensing_method
+            end if
+            i = 0
+            if (P%WantVectors) then
+                i = 1
+            end if
+            write(fp,'(A,I0)') 'vector_mode = ', i
+        end if
+        if (P%WantTensors) then
+            write(fp,'(A,I0)') 'l_max_tensor = ', P%Max_l_tensor
+            write(fp,'(A,F10.4)') 'k_eta_max_tensor = ', P%Max_eta_k_tensor
+        end if
+    end if
+
 !    !  Read initial parameters.
 !    DarkEneryModel = UpperCase(Ini%Read_String_Default('dark_energy_model', 'fluid'))
 !    if (allocated(P%DarkEnergy)) deallocate(P%DarkEnergy)
