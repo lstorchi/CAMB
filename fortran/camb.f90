@@ -240,6 +240,7 @@
     character(len=Ini_max_string_len), intent(in) :: IniFile
     integer :: fp, num_redshiftwindows, i
     logical :: DoCounts
+    character(len=Ini_max_string_len) :: DarkEneryModel
 
     open(newunit=fp, file=IniFile, status='unknown')
 
@@ -352,14 +353,14 @@
     call WriteBool(fp, 'evolve_delta_xe', P%Evolve_delta_xe)
     call WriteBool(fp, 'evolve_delta_ts', P%Evolve_delta_Ts)
 
-    write(fp,'(A,I2)') 'l_min = ', P%Min_l
+    write(fp,'(A,I0)') 'l_min = ', P%Min_l
     if (P%WantCls) then
-        write(fp,'(A,I2)') 'l_max_scalar = ', P%Max_l
+        write(fp,'(A,I0)') 'l_max_scalar = ', P%Max_l
         write(fp,'(A,F10.4)') 'k_eta_max_scalar = ', P%Max_eta_k
         if (P%WantScalars  .or. P%WantVectors) then
             call WriteBool(fp, 'do_lensing', P%DoLensing)
             if (P%DoLensing) then
-                write(fp,'(A,I1)') 'lensing_method = ', lensing_method
+                write(fp,'(A,I0)') 'lensing_method = ', lensing_method
             end if
             i = 0
             if (P%WantVectors) then
@@ -373,45 +374,39 @@
         end if
     end if
 
-!    !  Read initial parameters.
-!    DarkEneryModel = UpperCase(Ini%Read_String_Default('dark_energy_model', 'fluid'))
-!    if (allocated(P%DarkEnergy)) deallocate(P%DarkEnergy)
-!    if (DarkEneryModel == 'FLUID') then
-!        allocate (TDarkEnergyFluid::P%DarkEnergy)
-!    else if (DarkEneryModel == 'PPF') then
-!        allocate (TDarkEnergyPPF::P%DarkEnergy)
-!    else if (DarkEneryModel == 'AXIONEFFECTIVEFLUID') then
-!        allocate (TAxionEffectiveFluid::P%DarkEnergy)
-!    else if (DarkEneryModel == 'EARLYQUINTESSENCE') then
-!        allocate (TEarlyQuintessence::P%DarkEnergy)
-!    else
-!        ErrMsg = 'Unknown dark energy model: '//trim(DarkEneryModel)
-!        return
-!    end if
+!   TODO need to add dARK ENERGY MODEL TO P dataclass and store during reading
+!       need to modify also the reading
+!   if (allocated(TDarkEnergyFluid::P%DarkEnergy)) then
+!       DarkEneryModel = 'FLUID'
+!   else if (allocated(TDarkEnergyPPF::P%DarkEnergy)) then
+!       DarkEneryModel = 'PPF'
+!   else if (allocated(TAxionEffectiveFluid::P%DarkEnergy)) then
+!       DarkEneryModel = 'AXIONEFFECTIVEFLUID'
+!   else if (allocated(TEarlyQuintessence::P%DarkEnergy)) then
+!       DarkEneryModel = 'EARLYQUINTESSENCE'
+!   else
+!       DarkEneryModel = 'NONE'
+!   end if
+
+!   write(fp,'(A)') 'dark_energy_model = '//DarkEneryModel
+
+!    to be continued 
 !    call P%DarkEnergy%ReadParams(Ini)
-!
-!    P%h0 = Ini%Read_Double('hubble')
-!
-!    if (Ini%Read_Logical('use_physical', .true.)) then
-!        P%ombh2 = Ini%Read_Double('ombh2')
-!        P%omch2 = Ini%Read_Double('omch2')
-!        P%omnuh2 = Ini%Read_Double('omnuh2')
-!        P%omk = Ini%Read_Double('omk')
-!    else
-!        ErrMsg = 'use_physical = F no longer supported. Use ombh2, omch2, omnuh2, omk'
-!        return
-!    end if
-!
-!    P%tcmb = Ini%Read_Double('temp_cmb', COBE_CMBTemp)
-!    P%yhe = Ini%Read_Double('helium_fraction', 0.24_dl)
-!    P%Num_Nu_massless = Ini%Read_Double('massless_neutrinos')
-!
-!    P%Nu_mass_eigenstates = Ini%Read_Int('nu_mass_eigenstates', 1)
-!    if (P%Nu_mass_eigenstates > max_nu) then
-!        ErrMsg = 'too many mass eigenstates'
-!        return
-!    end if
-!
+
+    write(fp,'(A,F10.4)') 'hubble = ', P%h0
+
+    call WriteBool(fp, 'use_physical', .true.)
+    write(fp,'(A,F10.4)') 'ombh2 = ', P%ombh2
+    write(fp,'(A,F10.4)') 'omch2 = ', P%omch2
+    write(fp,'(A,F10.4)') 'omnuh2 = ', P%omnuh2
+    write(fp,'(A,F10.4)') 'omk = ', P%omk
+
+    write(fp,'(A,F10.4)') 'temp_cmb = ', P%tcmb
+    write(fp,'(A,F10.4)') 'helium_fraction = ', P%yhe
+    write(fp,'(A,F10.4)') 'massless_neutrinos = ', P%Num_Nu_massless
+
+    write(fp,'(A,I0)') 'nu_mass_eigenstates = ', P%Nu_mass_eigenstates
+    
 !    numstr = Ini%Read_String('massive_neutrinos')
 !    read(numstr, *) nmassive
 !    if (abs(nmassive-nint(nmassive))>1e-6) then
@@ -551,6 +546,7 @@
 !
 !    call Ini%Read('l_sample_boost', P%Accuracy%lSampleBoost)
 
+    write(fp,'(A)') '# End of parameter file'
     close(fp)
 
     CAMB_WriteIniFile = .true.
