@@ -286,9 +286,31 @@
     END FUNCTION  state_function
     end interface
 
-    procedure(obj_function), private :: dtauda
+    !procedure(obj_function), private :: dtauda
 
     contains
+
+    ! Background evolution, return d tau/ d a, where tau is the conformal time
+    function dtauda(this,a)
+    implicit none
+    class(CAMBdata) :: this
+    real(dl), intent(in) :: a
+    real(dl) :: dtauda, grhoa2, grhov_t
+
+    call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
+
+    !  8*pi*G*rho*a**4.
+    grhoa2 = this%grho_no_de(a) +  grhov_t * a**2
+    if (grhoa2 <= 0) then
+        call GlobalError('Universe stops expanding before today (recollapse not supported)', error_unsupported_params)
+        dtauda = 0
+    else
+        dtauda = sqrt(3 / grhoa2)
+    end if
+
+    end function dtauda
+
+
 
     function CAMBdata_PythonClass()
     character(LEN=:), allocatable :: CAMBdata_PythonClass

@@ -31,7 +31,7 @@ endif
 COMMON_FFLAGS = -MMD -cpp 
 FFLAGS = -O3 $(COMMON_FFLAGS)
 DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
-MODOUT =  -J$(OUTPUT_DIR)
+MODOUT =  -I$(OUTPUT_DIR)
 SMODOUT = -J$(DLL_DIR)
 
 ifneq ($(FISHER),)
