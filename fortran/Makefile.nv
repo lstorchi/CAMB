@@ -28,6 +28,8 @@ ifneq ($(CLUSTER_SAFE), 0)
 NONNATIVE = 1
 endif
 
+NONNATIVE = 1
+
 COMMON_FFLAGS = -cpp -Minform=warn -Mextend
 FFLAGS = -O0 -g $(COMMON_FFLAGS)
 DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
