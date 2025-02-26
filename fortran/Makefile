@@ -1,6 +1,6 @@
 #CAMB Makefile
-
 NVCOMP=no
+NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
 FISHER=
@@ -9,25 +9,25 @@ FISHER=
 #The OUTPUT_DIR will be appended.
 
 ifneq "$(wildcard ../forutils)" ""
-FORUTILSPATH ?= $(shell pwd)/../forutils
+  FORUTILSPATH ?= $(shell pwd)/../forutils
 else
-ifneq "$(wildcard ../../forutils)" ""
-FORUTILSPATH ?= $(shell pwd)/../../forutils
-else
-ifneq "$(wildcard ../../../forutils)" ""
-FORUTILSPATH ?= $(shell pwd)/../../../forutils
-endif
-endif
+  ifneq "$(wildcard ../../forutils)" ""
+    FORUTILSPATH ?= $(shell pwd)/../../forutils
+  else
+    ifneq "$(wildcard ../../../forutils)" ""
+      FORUTILSPATH ?= $(shell pwd)/../../../forutils
+    endif
+  endif
 endif
 
 ifeq ($(FORUTILSPATH),)
-$(error Use  git clone --recurse-submodules, install forutils from https://github.com/cmbant/forutils, or set FORUTILSPATH variable)
+  $(error Use  git clone --recurse-submodules, install forutils from https://github.com/cmbant/forutils, or set FORUTILSPATH variable)
 endif
 
 #native optimization does not work on Mac gfortran or heterogeneous clusters
 CLUSTER_SAFE ?= 0
 ifneq ($(CLUSTER_SAFE), 0)
-NONNATIVE = 1
+  NONNATIVE = 1
 endif
 
 #Will detect ifort/gfortran or edit for your compiler
@@ -38,7 +38,6 @@ else
 endif
 
 ifeq "$(ifortErr)" "0"
-
   #Intel compiler
   F90C     = ifort
 
@@ -48,7 +47,6 @@ ifeq "$(ifortErr)" "0"
   ifeq ($(shell test $(ifortVer_major) -lt 18; echo $$?),0)
     $(warning ** ifort version lower than 18.0.1 may not work with the Python wrapper **)
   endif
-
 
   ifeq ($(shell test $(ifortVer_major) -gt 15; echo $$?),0)
     COMMON_FFLAGS = -fpp -qopenmp
@@ -85,7 +83,6 @@ ifeq "$(ifortErr)" "0"
   ifneq ($(FISHER),)
     FFLAGS += -mkl
   endif
-
 else
   gfortErr = $(shell which gfortran >/dev/null; echo $$?)
   ifeq "$(gfortErr)" "0"
@@ -96,7 +93,8 @@ else
     F90C     = gfortran
     COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
     # Using -ffast-math causes differences between Debug and Release configurations.
-    FFLAGS = -O3 $(COMMON_FFLAGS)
+    #FFLAGS = -O3 $(COMMON_FFLAGS)
+    FFLAGS = -O0 -g $(COMMON_FFLAGS)
     DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
     ifeq ($(shell uname -s),Darwin)
       SFFLAGS = -dynamiclib #-fpic
@@ -117,6 +115,7 @@ else
     ifeq ($(shell uname -s),Darwin)
       NONNATIVE = 1
     endif
+
     ifndef NONNATIVE
       #Note this seems to make code slightly slower in some cases, use CLUSTER_SAFE=1 to test without
       FFLAGS+=-march=native
