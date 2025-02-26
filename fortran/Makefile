@@ -91,7 +91,8 @@ else
 
     COMPILER = gfortran
     F90C     = gfortran
-    COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+    #COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+    COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 
     # Using -ffast-math causes differences between Debug and Release configurations.
     #FFLAGS = -O3 $(COMMON_FFLAGS)
     FFLAGS = -O0 -g $(COMMON_FFLAGS)
