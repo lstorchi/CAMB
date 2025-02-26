@@ -1154,6 +1154,7 @@
     if (Ini%HasKey('DebugMsgs')) call Ini%Read('DebugMsgs', DebugMsgs)
 
     Ini%Fail_on_not_found = .false.
+    print *, 'Running CAMB with parameters from ', InputFile
     if (.not. CAMB_RunFromIni(Ini, InputFile, ErrMsg)) then
         write(*,*) trim(ErrMsg)
         error stop 'Invalid parameter'
