@@ -191,7 +191,7 @@
     real(dl), allocatable :: nu_tau_notmassless(:,:)
     real(dl) nu_tau_nonrelativistic(max_nu), nu_tau_massive(max_nu)
 
-    !procedure(state_function), private :: dtauda
+    procedure(state_function), private :: dtauda
     contains
 
     subroutine SetActiveState(P)
