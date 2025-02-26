@@ -64,5 +64,6 @@ Debug: FFLAGS = $(DEBUGFLAGS)
 
 COMPILER = nvfortran
 F90C     = nvfortran
+NVCOMP = yes
 
 include ./Makefile_main
