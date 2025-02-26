@@ -291,7 +291,8 @@
     contains
 
     ! Background evolution, return d tau/ d a, where tau is the conformal time
-    use results
+    function dtauda(this,a)
+    use DarkEnergyInterface
     implicit none
     class(CAMBdata) :: this
     real(dl), intent(in) :: a
