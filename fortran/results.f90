@@ -291,7 +291,7 @@
     contains
 
     ! Background evolution, return d tau/ d a, where tau is the conformal time
-    function dtauda(this,a)
+    use results
     implicit none
     class(CAMBdata) :: this
     real(dl), intent(in) :: a
@@ -309,7 +309,6 @@
     end if
 
     end function dtauda
-
 
 
     function CAMBdata_PythonClass()

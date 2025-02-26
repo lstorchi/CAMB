@@ -336,7 +336,7 @@
     !       choose some safely small number
     real(dl), parameter :: H_frac = 1D-3
 
-    procedure(obj_function), private :: dtauda
+    !procedure(obj_function), private :: dtauda
 
     public TRecfast,  CB1
 
