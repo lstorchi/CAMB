@@ -1,5 +1,5 @@
 #CAMB Makefile
-NVCOMP=no
+NVCOMP=yes
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
@@ -84,42 +84,49 @@ ifeq "$(ifortErr)" "0"
     FFLAGS += -mkl
   endif
 else
-  gfortErr = $(shell which gfortran >/dev/null; echo $$?)
-  ifeq "$(gfortErr)" "0"
-    #Gfortran compiler (version 6+):
-    compiler_ver = $(shell gfortran -dumpversion 2>&1)
-
-    COMPILER = gfortran
-    F90C     = gfortran
-    #COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
-    COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 
-    # Using -ffast-math causes differences between Debug and Release configurations.
-    #FFLAGS = -O3 $(COMMON_FFLAGS)
+  ifeq "$(NVCOMP)" "yes"
+    COMPILER=nvfortran
+    F90C=nvfortran
+    COMMON_FFLAGS = -MMD -cpp -Minform=warn -Mextend
     FFLAGS = -O0 -g $(COMMON_FFLAGS)
-    DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
-    ifeq ($(shell uname -s),Darwin)
-      SFFLAGS = -dynamiclib #-fpic
-      ifneq ($(shell echo $(compiler_ver) | awk '{print ($$1 >= 14.0)}'),0)
-        SFFLAGS += -static-libgfortran -static-libgcc -static-libquadmath 
+  else
+    gfortErr = $(shell which gfortran >/dev/null; echo $$?)
+    ifeq "$(gfortErr)" "0"
+      #Gfortran compiler (version 6+):
+      compiler_ver = $(shell gfortran -dumpversion 2>&1)
+ 
+      COMPILER = gfortran
+      F90C     = gfortran
+      #COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+      COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 
+      # Using -ffast-math causes differences between Debug and Release configurations.
+      #FFLAGS = -O3 $(COMMON_FFLAGS)
+      FFLAGS = -O0 -g $(COMMON_FFLAGS)
+      DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
+      ifeq ($(shell uname -s),Darwin)
+        SFFLAGS = -dynamiclib #-fpic
+        ifneq ($(shell echo $(compiler_ver) | awk '{print ($$1 >= 14.0)}'),0)
+          SFFLAGS += -static-libgfortran -static-libgcc -static-libquadmath 
+        endif
+      else
+        SFFLAGS = -shared -fpic
       endif
-    else
-      SFFLAGS = -shared -fpic
-    endif
-
-    MODOUT =  -J$(OUTPUT_DIR)
-    SMODOUT = -J$(DLL_DIR)
-
-    ifneq ($(FISHER),)
-      F90CRLINK += -lblas -llapack
-    endif
-
-    ifeq ($(shell uname -s),Darwin)
-      NONNATIVE = 1
-    endif
-
-    ifndef NONNATIVE
-      #Note this seems to make code slightly slower in some cases, use CLUSTER_SAFE=1 to test without
-      FFLAGS+=-march=native
+ 
+      MODOUT =  -J$(OUTPUT_DIR)
+      SMODOUT = -J$(DLL_DIR)
+ 
+      ifneq ($(FISHER),)
+        F90CRLINK += -lblas -llapack
+      endif
+ 
+      ifeq ($(shell uname -s),Darwin)
+        NONNATIVE = 1
+      endif
+ 
+      ifndef NONNATIVE
+        #Note this seems to make code slightly slower in some cases, use CLUSTER_SAFE=1 to test without
+        FFLAGS+=-march=native
+      endif
     endif
   endif
 endif
