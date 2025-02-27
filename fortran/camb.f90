@@ -186,37 +186,23 @@
 
     ! I will move it 
 
-    subroutine WriteArray(fp, name, value)
+    subroutine WriteIntArray(fp, name, value)
         implicit none
         integer, intent(in) :: fp
         character(len=*), intent(in) :: name   
-        integer, intent(in) :: value(:)
+        integer, dimension(:), intent(in) :: value(:)
         character(len=:), allocatable :: str
         integer :: i, n, total_len
-    
+        character(len=20) :: fmt
         ! Determiniamo la lunghezza totale della stringa
+
         n = size(value)
-        total_len = n * 5  ! Supponiamo max 10 cifre per numero + 1 spazio
+        write(fmt,'(A,I3,A)') '(A ,',n,'(I5))'
+        print*,"fmt",fmt
+        write(fp,fmt) trim(adjustl(name)), (value(i), i = 1,n)
     
-        allocate(character(len=total_len) :: str)
-        str = ""
     
-        ! Costruiamo la stringa concatenando gli elementi
-        do i = 1, n
-            if (i == 1) then
-                write(str, '(I0)') value(i)  ! Primo elemento senza spazio iniziale
-            else
-                write(str, '(A,1X,I0)') trim(str), value(i)  ! Concateniamo con spazio
-            end if
-        end do
-    
-        ! Stampiamo il risultato nel file o a schermo
-        write(fp, '(A, A)') name, trim(str)
-    
-        ! Deallocazione
-        deallocate(str)
-    
-    end subroutine WriteArray
+    end subroutine WriteIntArray
 
     subroutine WriteBool(fp, name, value)
     integer, intent(in) :: fp
@@ -483,12 +469,7 @@
     write(fp,'(A,F10.4)') 'massless_neutrinos = ', P%Num_Nu_massless
 
     write(fp,'(A,I0)') 'nu_mass_eigenstates = ', P%Nu_mass_eigenstates
-
-    if (size(P%Num_Nu_massive) > 1) then
-        call WriteArray(fp, 'massive_neutrinos = ', P%Num_Nu_massive)
-    else 
-        call WriteInteger(fp, 'massive_neutrinos = ', P%Num_Nu_massive)
-    end if 
+    call WriteIntArray(fp,'massive_neutrinos = ',P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates))
 
 !    numstr = Ini%Read_String('massive_neutrinos')
 !    read(numstr,*, iostat=status) P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates)
@@ -855,12 +836,15 @@
     end if
 
     numstr = Ini%Read_String('massive_neutrinos')
+ 
     read(numstr, *) nmassive
-    if (abs(nmassive-nint(nmassive))>1e-6) then
+ 
+     if (abs(nmassive-nint(nmassive))>1e-6) then
         ErrMsg =  'massive_neutrinos should now be integer (or integer array)'
         return
     end if
     read(numstr,*, iostat=status) P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates)
+
     if (status/=0) then
         ErrMsg = 'Must give num_massive number of integer physical neutrinos for each eigenstate'
         return
