@@ -185,6 +185,39 @@
     end subroutine CAMB_GetCls
 
     ! I will move it 
+
+    subroutine WriteArray(fp, name, value)
+        implicit none
+        integer, intent(in) :: fp
+        character(len=*), intent(in) :: name   
+        integer, intent(in) :: value(:)
+        character(len=:), allocatable :: str
+        integer :: i, n, total_len
+    
+        ! Determiniamo la lunghezza totale della stringa
+        n = size(value)
+        total_len = n * 5  ! Supponiamo max 10 cifre per numero + 1 spazio
+    
+        allocate(character(len=total_len) :: str)
+        str = ""
+    
+        ! Costruiamo la stringa concatenando gli elementi
+        do i = 1, n
+            if (i == 1) then
+                write(str, '(I0)') value(i)  ! Primo elemento senza spazio iniziale
+            else
+                write(str, '(A,1X,I0)') trim(str), value(i)  ! Concateniamo con spazio
+            end if
+        end do
+    
+        ! Stampiamo il risultato nel file o a schermo
+        write(fp, '(A, A)') name, trim(str)
+    
+        ! Deallocazione
+        deallocate(str)
+    
+    end subroutine WriteArray
+
     subroutine WriteBool(fp, name, value)
     integer, intent(in) :: fp
     character(len=*), intent(in) :: name
@@ -197,6 +230,52 @@
     end if
 
     end subroutine WriteBool
+
+    subroutine WriteDouble(fp, key, value, index)
+        implicit none
+        integer, intent(in) :: fp
+        integer, intent(in), optional :: index
+        character(len=*), intent(in) :: key
+        double precision, intent(in) :: value
+        
+        if (present(index)) then    
+            write(fp, '(A, A1, I0, A1, A, ES20.10)') trim(key), '(', index, ')', ' = ', value
+        else
+            write(fp, '(A, A, ES20.10)') trim(key), ' = ', value
+        end if    
+    
+    end subroutine WriteDouble
+    
+    subroutine WriteString(fp, key, value, index)
+        implicit none
+        integer, intent(in) :: fp
+        integer, intent(in), optional :: index
+        character(len=*), intent(in) :: key
+        character(len=*), intent(in) :: value
+        
+        if (present(index)) then
+            write(fp, '(A, A1, I0, A1, A, A)') trim(key), '(', index, ')', ' = ', trim(value)
+        else
+            write(fp, '(A, A, A)') trim(key), ' = ', trim(value)
+        end if
+
+    end subroutine WriteString
+
+
+    subroutine WriteInteger(fp, key, value, index)
+        implicit none
+        integer, intent(in) :: fp, value
+        integer, intent(in), optional :: index
+        character(len=*), intent(in) :: key
+
+        if (present(index)) then
+            write(fp, '(A, A1, I0, A1, A, I3)') trim(key), '(', index,')', ' = ', value
+        else
+            write(fp, '(A, A, I3)') trim(key), ' = ', value
+        end if
+
+    end subroutine WriteInteger
+
 
     function CAMB_GetAge(P)
     !Return age in Julian gigayears, returns -1 on error
@@ -241,7 +320,10 @@
     integer :: fp, num_redshiftwindows, i
     logical :: DoCounts
     character(len=Ini_max_string_len) :: DarkEneryModel
-
+    character(len=132) :: S
+    character(len=7), dimension(3), parameter :: srctype=(/"21cm   ","counts ","lensing"/)
+    character(len=19), dimension(4), parameter :: drkmodtype=(/"FLUID              ", "PPF                ", &
+                                                            "AXIONEFFECTIVEFLUID", "EARLYQUINTESSENCE  "/)    
     open(newunit=fp, file=IniFile, status='unknown')
 
     if (fp == 0) then
@@ -282,45 +364,49 @@
     call WriteBool(fp, 'Do21cm', P%Do21cm)
     DoCounts = .false.
 
-!    to be continued 
-!    do i=1, num_redshiftwindows
-!        allocate(TGaussianSourceWindow::P%SourceWindows(i)%Window)
-!        select type (RedWin=>P%SourceWindows(i)%Window)
-!        class is (TGaussianSourceWindow)
-!            RedWin%Redshift = Ini%Read_Double_Array('redshift', i)
-!            S = Ini%Read_String_Array('redshift_kind', i)
-!            if (S == '21cm') then
-!                RedWin%source_type = window_21cm
-!            elseif (S == 'counts') then
-!                RedWin%source_type = window_counts
-!            elseif (S == 'lensing') then
-!                RedWin%source_type = window_lensing
-!            else
-!                ErrMsg = 'Error: unknown type of window '//trim(S)
-!                return
-!            end if
-!            if (RedWin%source_type /= window_21cm) then
-!                RedWin%sigma = Ini%Read_Double_Array('redshift_sigma', i)
-!            else
-!                P%Do21cm = .true.
-!                RedWin%sigma = Ini%Read_Double_Array('redshift_sigma_Mhz', i)
-!                if (RedWin%sigma < 0.003) then
-!                    write(*,*) 'WARNING:Window very narrow.'
-!                    write(*,*) ' --> use transfer functions and transfer_21cm_cl =T ?'
-!                end if
-!                !with 21cm widths are in Mhz, make dimensionless scale factor
-!                RedWin%sigma = RedWin%sigma / (f_21cm / 1e6)
-!                if (FeedbackLevel>0) write(*,*) i,'delta_z = ',  RedWin%sigma * (1 + RedWin%RedShift) ** 2
-!            end if
-!            if (RedWin%source_type == window_counts) then
-!                DoCounts = .true.
-!                RedWin%bias = Ini%Read_Double_Array('redshift_bias', i)
-!                RedWin%dlog10Ndm = Ini%Read_Double_Array('redshift_dlog10Ndm', i ,0.d0)
-!            end if
-!        class default
-!            call MpiStop('Probable compiler bug')
-!        end select
-!    end do
+    do i=1, num_redshiftwindows
+
+        select type (RedWin => P%SourceWindows(i)%Window)
+
+        class is (TGaussianSourceWindow)
+
+            call WriteDouble(fp, 'redshift', RedWin%Redshift, i)
+            call WriteString(fp, 'redshift_kind', srctype(RedWin%source_type), i)      ! Needs ErrMsg if not 1, 2 or 3
+
+            print*, 'P%Do21cm: ', P%Do21cm
+
+            if (srctype(RedWin%source_type) /= '21cm   ') then  !sostituisci
+
+                call WriteDouble(fp, 'redshift_sigma', RedWin%sigma, i)
+    
+            else
+
+                !P%Do21cm = .true.
+
+                call WriteDouble(fp, 'redshift_sigma_Mhz', RedWin%sigma, i)
+                
+                if (RedWin%sigma < 0.003) then
+                    write(*,*) 'WARNING from IniWrite: Window very narrow.'
+                    write(*,*) ' --> use transfer functions and transfer_21cm_cl =T ?' 
+                end if
+            
+            end if
+
+                !RedWin%sigma = RedWin%sigma / (f_21cm / 1e6)
+
+            if (srctype(RedWin%source_type) /= 'counts ') then 
+                DoCounts = .true.
+                
+                call WriteDouble(fp, 'redshift_bias', RedWin%bias, i)
+                call WriteDouble(fp, 'redshift_dlog10Ndm', RedWin%dlog10Ndm, i)  
+            end if
+
+        class default
+
+            call MpiStop('Probable compiler bug')
+
+        end select
+    end do
 
     if (P%Do21cm) then
         call WriteBool(fp, 'line_basic', P%SourceTerms%line_basic)
@@ -374,24 +460,15 @@
         end if
     end if
 
-!   TODO need to add dARK ENERGY MODEL TO P dataclass and store during reading
-!       need to modify also the reading
-!   if (allocated(TDarkEnergyFluid::P%DarkEnergy)) then
-!       DarkEneryModel = 'FLUID'
-!   else if (allocated(TDarkEnergyPPF::P%DarkEnergy)) then
-!       DarkEneryModel = 'PPF'
-!   else if (allocated(TAxionEffectiveFluid::P%DarkEnergy)) then
-!       DarkEneryModel = 'AXIONEFFECTIVEFLUID'
-!   else if (allocated(TEarlyQuintessence::P%DarkEnergy)) then
-!       DarkEneryModel = 'EARLYQUINTESSENCE'
-!   else
-!       DarkEneryModel = 'NONE'
-!   end if
+    print*, 'P%DarkEnergy%model =', P%DarkEnergy%model
 
-!   write(fp,'(A)') 'dark_energy_model = '//DarkEneryModel
+    if (P%DarkEnergy%model /= 0) &
+        call WriteString(fp, 'dark_energy_model', drkmodtype(P%DarkEnergy%model))      ! Needs ErrMsg if not 1, 2 or 3
 
-!    to be continued 
+! TODO later
+
 !    call P%DarkEnergy%ReadParams(Ini)
+
 
     write(fp,'(A,F10.4)') 'hubble = ', P%h0
 
@@ -406,13 +483,14 @@
     write(fp,'(A,F10.4)') 'massless_neutrinos = ', P%Num_Nu_massless
 
     write(fp,'(A,I0)') 'nu_mass_eigenstates = ', P%Nu_mass_eigenstates
-    
+
+    if (size(P%Num_Nu_massive) > 1) then
+        call WriteArray(fp, 'massive_neutrinos = ', P%Num_Nu_massive)
+    else 
+        call WriteInteger(fp, 'massive_neutrinos = ', P%Num_Nu_massive)
+    end if 
+
 !    numstr = Ini%Read_String('massive_neutrinos')
-!    read(numstr, *) nmassive
-!    if (abs(nmassive-nint(nmassive))>1e-6) then
-!        ErrMsg =  'massive_neutrinos should now be integer (or integer array)'
-!        return
-!    end if
 !    read(numstr,*, iostat=status) P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates)
 !    if (status/=0) then
 !        ErrMsg = 'Must give num_massive number of integer physical neutrinos for each eigenstate'
@@ -738,12 +816,16 @@
     if (allocated(P%DarkEnergy)) deallocate(P%DarkEnergy)
     if (DarkEneryModel == 'FLUID') then
         allocate (TDarkEnergyFluid::P%DarkEnergy)
+        P%DarkEnergy%model = 1
     else if (DarkEneryModel == 'PPF') then
         allocate (TDarkEnergyPPF::P%DarkEnergy)
+        P%DarkEnergy%model = 2
     else if (DarkEneryModel == 'AXIONEFFECTIVEFLUID') then
         allocate (TAxionEffectiveFluid::P%DarkEnergy)
+        P%DarkEnergy%model = 3
     else if (DarkEneryModel == 'EARLYQUINTESSENCE') then
         allocate (TEarlyQuintessence::P%DarkEnergy)
+        P%DarkEnergy%model = 4
     else
         ErrMsg = 'Unknown dark energy model: '//trim(DarkEneryModel)
         return

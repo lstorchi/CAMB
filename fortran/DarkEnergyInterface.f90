@@ -9,6 +9,7 @@
     type, extends(TCambComponent) :: TDarkEnergyModel
         logical :: is_cosmological_constant = .true.
         integer :: num_perturb_equations = 0
+        integer :: model = 0  !Nik 27.02.25
     contains
     procedure :: Init
     procedure :: BackgroundDensityAndPressure
