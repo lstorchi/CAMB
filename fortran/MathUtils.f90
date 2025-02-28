@@ -43,6 +43,7 @@
     min_steps = PresentDefault(0, minsteps)
     abstol = DefaultFalse(abs_tol)
     h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
     gmax=h*(f(obj,a)+f(obj,b))
     if (global_error_flag /=0) return
     g(1)=gmax
@@ -55,7 +56,9 @@
         !  Calculate next trapezoidal rule approximation to integral.
         g0=0._dl
         do k=1,nint
+            ! get pointer problem apparently for NVfortran
             g0=g0+f(obj, a+(k+k-1)*h)
+            g0 = 1.0d0
             if (global_error_flag /=0) return
         end do
         g0=0.5d0*g(1)+h*g0

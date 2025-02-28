@@ -626,7 +626,9 @@
     real(dl), optional, intent(in) :: in_tol
 
     atol = PresentDefault(tol/1000/exp(this%CP%Accuracy%AccuracyBoost*this%CP%Accuracy%IntTolBoost-1), in_tol)
+    print *, "before the first call to Integrate_Romberg"
     CAMBdata_DeltaTime = Integrate_Romberg(this, dtauda,a1,a2,atol)
+    print *, "after the first call to Integrate_Romberg"
 
     end function CAMBdata_DeltaTime
 
