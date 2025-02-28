@@ -44,7 +44,10 @@
     abstol = DefaultFalse(abs_tol)
     h=0.5d0*(b-a)
     ! get pointer problem apparently for NVfortran
+    print *, 'Integrate_Romberg: a,b,h', a,b,h
+    print *, "  Calling f/fin function"
     gmax=h*(f(obj,a)+f(obj,b))
+    print *, "  Done calling f/fin function"
     if (global_error_flag /=0) return
     g(1)=gmax
     nint=1
