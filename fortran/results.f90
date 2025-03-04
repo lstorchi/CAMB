@@ -376,7 +376,7 @@
     Integrate_Romberg_reion_doptdepth_dz=g0
     if (i > max_it .and. abs(error) > tol)  then
         write(*,*) 'Warning: Integrate_Rombergreion_doptdepth_dz failed to converge; '
-        write (*,*)'integral, error, tol:', Integrate_Romberg,error, tol
+        write (*,*)'integral, error, tol:', Integrate_Romberg_reion_doptdepth_dz,error, tol
     end if
 
     end function Integrate_Romberg_reion_doptdepth_dz
@@ -447,7 +447,7 @@
     Integrate_Romberg_dtauda=g0
     if (i > max_it .and. abs(error) > tol)  then
         write(*,*) 'Warning: Integrate_Romberg_dtauda failed to converge; '
-        write (*,*)'integral, error, tol:', Integrate_Romberg,error, tol
+        write (*,*)'integral, error, tol:', Integrate_Romberg_dtauda,error, tol
     end if
     end function Integrate_Romberg_dtauda
     ! end function Integrate_Romberg_dtauda duplicate
