@@ -345,7 +345,6 @@
         do k=1,nint
             ! get pointer problem apparently for NVfortran
             g0=g0+reion_doptdepth_dz(obj, a+(k+k-1)*h)
-            g0 = 1.0d0
             if (global_error_flag /=0) return
         end do
         g0=0.5d0*g(1)+h*g0
@@ -416,7 +415,6 @@
         do k=1,nint
             ! get pointer problem apparently for NVfortran
             g0=g0+dtauda(obj, a+(k+k-1)*h)
-            g0 = 1.0d0
             if (global_error_flag /=0) return
         end do
         g0=0.5d0*g(1)+h*g0
