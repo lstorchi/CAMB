@@ -323,7 +323,6 @@
     integer :: nint, i, k, jmax, j
     real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
     logical abstol
-    real(dl), external :: reion_doptdepth_dz
 
     !convert the class function (un-type-checked) into correct type to call correctly for class argument
     Integrate_Romberg_reion_doptdepth_dz = -1
@@ -395,7 +394,6 @@
     integer :: nint, i, k, jmax, j
     real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
     logical abstol
-    real(dl), external :: dtauda
 
     !convert the class function (un-type-checked) into correct type to call correctly for class argument
     Integrate_Romberg_dtauda = -1
