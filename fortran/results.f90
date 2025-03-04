@@ -310,6 +310,77 @@
     end if
     end function dtauda
 
+    function Integrate_Romberg_reion_doptdepth_dz(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_reion_doptdepth_dz
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_reion_doptdepth_dz = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(reion_doptdepth_dz(obj,a)+reion_doptdepth_dz(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+reion_doptdepth_dz(obj, a+(k+k-1)*h)
+            g0 = 1.0d0
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_reion_doptdepth_dz=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Rombergreion_doptdepth_dz failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg,error, tol
+    end if
+
+    end function Integrate_Romberg_reion_doptdepth_dz
+
     function Integrate_Romberg_dtauda(obj, a, b, tol, maxit, minsteps, abs_tol)
     use MiscUtils
     use config, only : global_error_flag
@@ -375,7 +446,7 @@
 
     Integrate_Romberg_dtauda=g0
     if (i > max_it .and. abs(error) > tol)  then
-        write(*,*) 'Warning: Integrate_Romberg failed to converge; '
+        write(*,*) 'Warning: Integrate_Romberg_dtauda failed to converge; '
         write (*,*)'integral, error, tol:', Integrate_Romberg,error, tol
     end if
     end function Integrate_Romberg_dtauda
@@ -1331,9 +1402,8 @@
     real(dl) zstart, zend
 
     call this%CP%Reion%get_timesteps(n, zstart, zend)
-    prin *, "here I need to duplicate similarly" 
-    GetReionizationOptDepth = Integrate_Romberg(this, reion_doptdepth_dz,0.d0,zstart,&
-        1d-5/this%CP%Accuracy%AccuracyBoost)
+    GetReionizationOptDepth = Integrate_Romberg_reion_doptdepth_dz(this, &
+        0.d0,zstart,1d-5/this%CP%Accuracy%AccuracyBoost)
 
     end function GetReionizationOptDepth
 
