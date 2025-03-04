@@ -29,7 +29,7 @@
         real(dl)    ::  kmax = 0.9_dl        !these are acutally q values, but same as k for flat
         integer     ::  k_per_logint =0
         integer     ::  PK_num_redshifts = 1
-        real(dl)    ::  PK_redshifts(max_transfer_redshifts) = 0._dl
+        real(dl)    ::  PK_redshifts(max_transfer_redshifts) = 0._dl    
     end type TransferParams
 
     type AccuracyParams
@@ -121,6 +121,7 @@
         integer   :: NonLinear = NonLinear_none
         type(TransferParams) :: Transfer
 
+
         logical   :: want_zstar = .false.
         logical   :: want_zdrag = .false.     !!JH for updated BAO likelihood.
 
@@ -146,6 +147,12 @@
         real(dl)  :: Nu_mass_degeneracies(max_nu)
         real(dl)  :: Nu_mass_fractions(max_nu) !The ratios of the total densities
         integer   :: Nu_mass_numbers(max_nu) !physical number per eigenstate
+        
+        integer   :: Rec_Mod = 1      ! Nik 28.02.25      
+        
+        ! Here, segmentation fault related issues
+        logical   ::  unique_interp = .false.
+        integer   ::  unique_powervar = 1  
 
         class(TInitialPower), allocatable :: InitPower
         class(TRecombinationModel), allocatable :: Recomb

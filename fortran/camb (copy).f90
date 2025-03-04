@@ -185,44 +185,6 @@
     end subroutine CAMB_GetCls
 
     ! I will move it 
-
-    subroutine WriteIntArray(fp, name, value)
-        implicit none
-        integer, intent(in) :: fp
-        character(len=*), intent(in) :: name   
-        integer, dimension(:), intent(in) :: value(:)
-        character(len=:), allocatable :: str
-        integer :: i, n, total_len
-        character(len=20) :: fmt
-        ! Determiniamo la lunghezza totale della stringa
-
-        n = size(value)
-        write(fmt,'(A,I3,A)') '(A , A,',n,'(I5))'
-        print*,"fmt",fmt
-        write(fp,fmt) trim(adjustl(name)), ' = ', (value(i), i = 1,n)
-    
-    
-    end subroutine WriteIntArray
-
-    subroutine WriteRealArray(fp, name, value)
-        implicit none
-        integer, intent(in) :: fp
-        character(len=*), intent(in) :: name   
-        real(8), dimension(:), intent(in) :: value(:)
-        character(len=:), allocatable :: str
-        integer :: i, n, total_len
-        character(len=20) :: fmt
-        ! Determiniamo la lunghezza totale della stringa
-
-        n = size(value)
-        write(fmt,'(A,I3,A)') '(A , A,',n,'(f12.6))'  ! TODO check correct formatting 
-        print*,"fmt",fmt
-        write(fp,fmt) trim(adjustl(name)),' = ' , (value(i), i = 1,n)
-    
-    
-    end subroutine WriteRealArray
-
-
     subroutine WriteBool(fp, name, value)
     integer, intent(in) :: fp
     character(len=*), intent(in) :: name
@@ -235,52 +197,6 @@
     end if
 
     end subroutine WriteBool
-
-    subroutine WriteDouble(fp, key, value, index)
-        implicit none
-        integer, intent(in) :: fp
-        integer, intent(in), optional :: index
-        character(len=*), intent(in) :: key
-        double precision, intent(in) :: value
-        
-        if (present(index)) then    
-            write(fp, '(A, A1, I0, A1, A, ES20.10)') trim(key), '(', index, ')', ' = ', value
-        else
-            write(fp, '(A, A, ES20.10)') trim(key), ' = ', value
-        end if    
-    
-    end subroutine WriteDouble
-    
-    subroutine WriteString(fp, key, value, index)
-        implicit none
-        integer, intent(in) :: fp
-        integer, intent(in), optional :: index
-        character(len=*), intent(in) :: key
-        character(len=*), intent(in) :: value
-        
-        if (present(index)) then
-            write(fp, '(A, A1, I0, A1, A, A)') trim(key), '(', index, ')', ' = ', trim(value)
-        else
-            write(fp, '(A, A, A)') trim(key), ' = ', trim(value)
-        end if
-
-    end subroutine WriteString
-
-
-    subroutine WriteInteger(fp, key, value, index)
-        implicit none
-        integer, intent(in) :: fp, value
-        integer, intent(in), optional :: index
-        character(len=*), intent(in) :: key
-
-        if (present(index)) then
-            write(fp, '(A, A1, I0, A1, A, I3)') trim(key), '(', index,')', ' = ', value
-        else
-            write(fp, '(A, A, I3)') trim(key), ' = ', value
-        end if
-
-    end subroutine WriteInteger
-
 
     function CAMB_GetAge(P)
     !Return age in Julian gigayears, returns -1 on error
@@ -324,14 +240,7 @@
     character(len=Ini_max_string_len), intent(in) :: IniFile
     integer :: fp, num_redshiftwindows, i
     logical :: DoCounts
-    real(8) :: kmax_orig
     character(len=Ini_max_string_len) :: DarkEneryModel
-    character(len=132) :: S
-    character(len=7), dimension(3), parameter :: srctype=(/"21cm   ","counts ","lensing"/)
-    character(len=19), dimension(4), parameter :: drkmodtype=(/"FLUID              ", "PPF                ", &
-                                                            "AXIONEFFECTIVEFLUID", "EARLYQUINTESSENCE  "/)    
-    character(len=8), dimension(3), parameter :: recmod=(/"Recfast ","COSMOREC","HYREC   "/)
-
 
     open(newunit=fp, file=IniFile, status='unknown')
 
@@ -374,48 +283,48 @@
     DoCounts = .false.
 
     do i=1, num_redshiftwindows
-
-        select type (RedWin => P%SourceWindows(i)%Window)
-
-        class is (TGaussianSourceWindow)
-
-            call WriteDouble(fp, 'redshift', RedWin%Redshift, i)
-            call WriteString(fp, 'redshift_kind', srctype(RedWin%source_type), i)      ! Needs ErrMsg if not 1, 2 or 3
-
-            print*, 'P%Do21cm: ', P%Do21cm
-
-            if (srctype(RedWin%source_type) /= '21cm   ') then  !sostituisci
-
-                call WriteDouble(fp, 'redshift_sigma', RedWin%sigma, i)
+        write(fp, *) 'redshift', P%SourceWindows(i)%Window
+    end do 
     
-            else
-
-                !P%Do21cm = .true.
-
-                call WriteDouble(fp, 'redshift_sigma_Mhz', RedWin%sigma, i)
-                
-                if (RedWin%sigma < 0.003) then
-                    write(*,*) 'WARNING from IniWrite: Window very narrow.'
-                    write(*,*) ' --> use transfer functions and transfer_21cm_cl =T ?' 
-                end if
-            
-            end if
-
-                !RedWin%sigma = RedWin%sigma / (f_21cm / 1e6)
-
-            if (srctype(RedWin%source_type) /= 'counts ') then 
-                DoCounts = .true.
-                
-                call WriteDouble(fp, 'redshift_bias', RedWin%bias, i)
-                call WriteDouble(fp, 'redshift_dlog10Ndm', RedWin%dlog10Ndm, i)  
-            end if
-
-        class default
-
-            call MpiStop('Probable compiler bug')
-
-        end select
-    end do
+!    to be continued 
+!    do i=1, num_redshiftwindows
+!        allocate(TGaussianSourceWindow::P%SourceWindows(i)%Window)
+!        select type (RedWin=>P%SourceWindows(i)%Window)
+!        class is (TGaussianSourceWindow)
+!            RedWin%Redshift = Ini%Read_Double_Array('redshift', i)
+!            S = Ini%Read_String_Array('redshift_kind', i)
+!            if (S == '21cm') then
+!                RedWin%source_type = window_21cm
+!            elseif (S == 'counts') then
+!                RedWin%source_type = window_counts
+!            elseif (S == 'lensing') then
+!                RedWin%source_type = window_lensing
+!            else
+!                ErrMsg = 'Error: unknown type of window '//trim(S)
+!                return
+!            end if
+!            if (RedWin%source_type /= window_21cm) then
+!                RedWin%sigma = Ini%Read_Double_Array('redshift_sigma', i)
+!            else
+!                P%Do21cm = .true.
+!                RedWin%sigma = Ini%Read_Double_Array('redshift_sigma_Mhz', i)
+!                if (RedWin%sigma < 0.003) then
+!                    write(*,*) 'WARNING:Window very narrow.'
+!                    write(*,*) ' --> use transfer functions and transfer_21cm_cl =T ?'
+!                end if
+!                !with 21cm widths are in Mhz, make dimensionless scale factor
+!                RedWin%sigma = RedWin%sigma / (f_21cm / 1e6)
+!                if (FeedbackLevel>0) write(*,*) i,'delta_z = ',  RedWin%sigma * (1 + RedWin%RedShift) ** 2
+!            end if
+!            if (RedWin%source_type == window_counts) then
+!                DoCounts = .true.
+!                RedWin%bias = Ini%Read_Double_Array('redshift_bias', i)
+!                RedWin%dlog10Ndm = Ini%Read_Double_Array('redshift_dlog10Ndm', i ,0.d0)
+!            end if
+!        class default
+!            call MpiStop('Probable compiler bug')
+!        end select
+!    end do
 
     if (P%Do21cm) then
         call WriteBool(fp, 'line_basic', P%SourceTerms%line_basic)
@@ -469,15 +378,24 @@
         end if
     end if
 
-    print*, 'P%DarkEnergy%model =', P%DarkEnergy%model
+!   TODO need to add dARK ENERGY MODEL TO P dataclass and store during reading
+!       need to modify also the reading
+!   if (allocated(TDarkEnergyFluid::P%DarkEnergy)) then
+!       DarkEneryModel = 'FLUID'
+!   else if (allocated(TDarkEnergyPPF::P%DarkEnergy)) then
+!       DarkEneryModel = 'PPF'
+!   else if (allocated(TAxionEffectiveFluid::P%DarkEnergy)) then
+!       DarkEneryModel = 'AXIONEFFECTIVEFLUID'
+!   else if (allocated(TEarlyQuintessence::P%DarkEnergy)) then
+!       DarkEneryModel = 'EARLYQUINTESSENCE'
+!   else
+!       DarkEneryModel = 'NONE'
+!   end if
 
-    if (P%DarkEnergy%model /= 0) &
-        call WriteString(fp, 'dark_energy_model', drkmodtype(P%DarkEnergy%model))      ! Needs ErrMsg if not 1, 2 or 3
+!   write(fp,'(A)') 'dark_energy_model = '//DarkEneryModel
 
-! TODO later
-
+!    to be continued 
 !    call P%DarkEnergy%ReadParams(Ini)
-
 
     write(fp,'(A,F10.4)') 'hubble = ', P%h0
 
@@ -492,86 +410,145 @@
     write(fp,'(A,F10.4)') 'massless_neutrinos = ', P%Num_Nu_massless
 
     write(fp,'(A,I0)') 'nu_mass_eigenstates = ', P%Nu_mass_eigenstates
-    call WriteIntArray(fp,'massive_neutrinos  ',P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates))
-
-    if (P%Num_Nu_massive>0) then
-        print*, "P%share_delta_neff: ", P%share_delta_neff
-        call WriteBool(fp,'share_delta_neff',P%share_delta_neff)
-
-        if (P%share_delta_neff .EQV. .false. ) & 
-            call WriteRealArray(fp,'nu_mass_degeneracies ',P%Nu_mass_degeneracies(1:P%Nu_mass_eigenstates))
-
-        call WriteRealArray(fp,'nu_mass_fractions ', P%Nu_mass_fractions(1:P%Nu_mass_eigenstates))
-
-    end if 
-
-    call WriteBool(fp,'transfer_high_precision  ',P%Transfer%high_precision)
-    call WriteBool(fp,'accurate_massive_neutrino_transfers ',P%Transfer%accurate_massive_neutrinos)
-
- ! TODO  NONLINEAR READ PARAMS  if (P%NonLinear/=NonLinear_none) call P%NonLinearModel%ReadParams(Ini)
-!   
-    if (P%WantTransfer .eqv. .true.) then
-        kmax_orig= P%transfer%kmax/(P%h0 / 100._dl) ! ASK Loriano
-        call WriteDouble(fp,'transfer_kmax ',kmax_orig)  
-        !call WriteDouble(fp,'transfer_kmax',P%transfer%kmax )  
-        !P%transfer%kmax = Ini%Read_Double('transfer_kmax')*(P%h0 / 100._dl)
-        call WriteInteger(fp,'transfer_k_per_logint ',P%transfer%k_per_logint) 
-
-        if (P%Do21cm) call WriteBool(fp,'transfer_21cm_cl ',P%transfer_21cm_cl) 
-
-
-        ! Here, segmentation fault related issues
-
-        call WriteBool(fp, 'transfer_interp_matterpower', P%unique_interp)
-        call WriteInteger(fp, 'transfer_power_var', P%unique_powervar)
-
-!        print*, 'transf interp : ', P%interp
-!        print*, 'transf power : ', P%power
-
+    
+!    numstr = Ini%Read_String('massive_neutrinos')
+!    read(numstr, *) nmassive
+!    if (abs(nmassive-nint(nmassive))>1e-6) then
+!        ErrMsg =  'massive_neutrinos should now be integer (or integer array)'
+!        return
+!    end if
+!    read(numstr,*, iostat=status) P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates)
+!    if (status/=0) then
+!        ErrMsg = 'Must give num_massive number of integer physical neutrinos for each eigenstate'
+!        return
+!    end if
+!    P%Num_Nu_massive = sum(P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates))
+!
+!    if (P%Num_Nu_massive>0) then
+!        P%share_delta_neff = Ini%Read_Logical('share_delta_neff', .true.)
+!        numstr = Ini%Read_String('nu_mass_degeneracies')
+!        if (P%share_delta_neff) then
+!            if (numstr/='') write (*,*) 'WARNING: nu_mass_degeneracies ignored when share_delta_neff'
+!        else
+!            if (numstr=='') then
+!                ErrMsg = 'must give degeneracies for each eigenstate if share_delta_neff=F'
+!                return
+!            end if
+!            read(numstr,*) P%Nu_mass_degeneracies(1:P%Nu_mass_eigenstates)
+!        end if
+!        numstr = Ini%Read_String('nu_mass_fractions')
+!        if (numstr=='') then
+!            if (P%Nu_mass_eigenstates >1) then
+!                ErrMsg =  'must give nu_mass_fractions for the eigenstates'
+!                return
+!            end if
+!            P%Nu_mass_fractions(1)=1
+!        else
+!            read(numstr,*) P%Nu_mass_fractions(1:P%Nu_mass_eigenstates)
+!        end if
+!    end if
+!
+!    if (((P%NonLinear==NonLinear_lens .or. P%NonLinear==NonLinear_both) .and. P%DoLensing) .or. PK_WantTransfer) then
+!        P%Transfer%high_precision = Ini%Read_Logical('transfer_high_precision', .false.)
+!    else
+!        P%transfer%high_precision = .false.
+!    endif
+!    if (PK_WantTransfer) then
+!        P%Transfer%accurate_massive_neutrinos = Ini%Read_Logical('accurate_massive_neutrino_transfers',.false.)
+!    else
+!        P%Transfer%accurate_massive_neutrinos = .false.
+!    end if
+!    if (P%NonLinear/=NonLinear_none) call P%NonLinearModel%ReadParams(Ini)
+!
+!    if (PK_WantTransfer)  then
+!        P%WantTransfer  = .true.
+!        P%transfer%kmax = Ini%Read_Double('transfer_kmax')*(P%h0 / 100._dl)
+!        P%transfer%k_per_logint = Ini%Read_Int('transfer_k_per_logint')
+!        P%transfer%PK_num_redshifts = Ini%Read_Int('transfer_num_redshifts')
+!
+!        if (P%Do21cm) P%transfer_21cm_cl = Ini%Read_Logical('transfer_21cm_cl',.false.)
+!        if (P%transfer_21cm_cl .and. P%transfer%kmax > 800) then
+!            !Actually line widths are important at significantly larger scales too
+!            write (*,*) 'WARNING: kmax very large. '
+!            write(*,*) ' -- Neglected line width effects will dominate'
+!        end if
+!
 !        call Ini%Read('transfer_interp_matterpower', transfer_interp_matterpower)
 !        call Ini%Read('transfer_power_var', transfer_power_var)
-
-    end if 
-
-!IN READING erando dentro input, messi fuori, dato che hanno già un valore assegnato
-    call WriteInteger(fp,'transfer_num_redshifts ',P%transfer%PK_num_redshifts)
-    call WriteRealArray(fp,'transfer_redshift ',P%transfer%PK_redshifts(1:P%transfer%PK_num_redshifts))
-
-    call WriteDouble(fp,'Alens ',P%Alens)
-! 
-!    TODO call P%Reion%ReadParams(Ini)
-!    TODO call P%InitPower%ReadParams(Ini)
-
-    print*, 'Recombination model: ', recmod(P%Rec_Mod)
-    call WriteString(fp, 'recombination_model', recmod(P%Rec_Mod))
-
+!        if (P%transfer%PK_num_redshifts > max_transfer_redshifts) then
+!            ErrMsg = 'Too many redshifts, increase max_transfer_redshifts'
+!            return
+!        end if
+!        do i=1, P%transfer%PK_num_redshifts
+!            P%transfer%PK_redshifts(i)  = Ini%Read_Double_Array('transfer_redshift', i, 0._dl)
+!        end do
+!    else
+!        P%Transfer%PK_num_redshifts = 1
+!        P%Transfer%PK_redshifts = 0
+!    end if
 !
-!    TODO: call P%Recomb%ReadParams(Ini)
-
-
-    if (P%WantScalars .or. P%WantTransfer) then
-
-        call WriteInteger(fp,'initial_condition ',P%Scalar_initial_condition)
-        
-        if (P%Scalar_initial_condition == initial_vector) then
-            call WriteRealArray(fp,'initial_vector ', P%InitialConditionVector)
-        end if
-
-    end if
-
-    if (P%Scalar_initial_condition== initial_adiabatic) &
-        call WriteBool(fp,'use_cl_spline_template', P%use_cl_spline_template)
+!    call Ini%Read('Alens', P%Alens)
 !
-    call WriteBool(fp,'derived_parameters',P%WantDerivedParameters)
-
+!    call P%Reion%ReadParams(Ini)
+!    call P%InitPower%ReadParams(Ini)
+!
+!    RecombinationModel = UpperCase(Ini%Read_String_Default('recombination_model', 'Recfast'))
+!    if (RecombinationModel == 'COSMOREC') then
+!#ifdef COSMOREC
+!        deallocate(P%Recomb)
+!        allocate(TCosmoRec::P%Recomb)
+!#else
+!        ErrMsg = 'Compile with CosmoRec to use recombination_model=CosmoRec'
+!        return
+!#endif
+!    else if (RecombinationModel == 'HYREC') then
+!#ifdef HYREC
+!        deallocate(P%Recomb)
+!        allocate(THyRec::P%Recomb)
+!#else
+!        ErrMsg = 'Compile with HyRec to use recombination_model=HyRec'
+!        return
+!#endif
+!    else if (RecombinationModel /= 'RECFAST') then
+!        ErrMsg =  'Unknown recombination_model: '//trim(RecombinationModel)
+!        return
+!    end if
+!
+!    call P%Recomb%ReadParams(Ini)
+!
+!    if (P%WantScalars .or. P%WantTransfer) then
+!        P%Scalar_initial_condition = Ini%Read_Int('initial_condition', initial_adiabatic)
+!        if (P%Scalar_initial_condition == initial_vector) then
+!            allocate(P%InitialCOnditionVector(initial_nummodes))
+!            numstr = Ini%Read_String('initial_vector', .true.)
+!            read (numstr,*) P%InitialConditionVector
+!        end if
+!        if (P%Scalar_initial_condition/= initial_adiabatic) P%use_cl_spline_template = .false.
+!    end if
+!    if (P%Scalar_initial_condition== initial_adiabatic) &
+!        call Ini%Read('use_cl_spline_template', P%use_cl_spline_template)
+!
+!    P%WantDerivedParameters = Ini%Read_Logical('derived_parameters', .true.)
+!
 !    !optional parameters controlling the computation
 !
-    call WriteBool(fp,'accurate_polarization', P%Accuracy%AccuratePolarization)
-    call WriteBool(fp,'accurate_reionization',P%Accuracy%AccurateReionization)
-    call WriteBool(fp,'accurate_BB',P%Accuracy%AccurateBB)
-    call WriteBool(fp,'do_late_rad_trunction',P%DoLateRadTruncation)
-    call WriteInteger(fp,'massive_nu_approx',P%MassiveNuMethod)
-    call WriteDouble(fp,'l_sample_boost', P%Accuracy%lSampleBoost) ! USED AS INTEGER BUT DEFINED AS DOUBLE PRECISION
+!    P%Accuracy%AccuratePolarization = Ini%Read_Logical('accurate_polarization', .true.)
+!    P%Accuracy%AccurateReionization = Ini%Read_Logical('accurate_reionization', .true.)
+!    P%Accuracy%AccurateBB = Ini%Read_Logical('accurate_BB', .false.)
+!    if (P%Accuracy%AccurateBB .and. P%WantCls .and. (P%Max_l < 3500 .or. &
+!        (P%NonLinear/=NonLinear_lens .and. P%NonLinear/=NonLinear_both) .or. P%Max_eta_k < 18000)) &
+!        write(*,*) 'WARNING: for accurate lensing BB you need high l_max_scalar, k_eta_max_scalar and non-linear lensing'
+!
+!    !Mess here to fix typo with backwards compatibility
+!    if (Ini%HasKey('do_late_rad_trunction')) then
+!        P%DoLateRadTruncation = Ini%Read_Logical('do_late_rad_trunction', .true.)
+!        if (Ini%HasKey('do_late_rad_truncation')) error stop 'check do_late_rad_xxxx'
+!    else
+!        P%DoLateRadTruncation = Ini%Read_Logical('do_late_rad_truncation', .true.)
+!    end if
+!    P%MassiveNuMethod = Ini%Read_Int('massive_nu_approx', Nu_best)
+!
+!    call Ini%Read('l_sample_boost', P%Accuracy%lSampleBoost)
 
     write(fp,'(A)') '# End of parameter file'
     close(fp)
@@ -765,16 +742,12 @@
     if (allocated(P%DarkEnergy)) deallocate(P%DarkEnergy)
     if (DarkEneryModel == 'FLUID') then
         allocate (TDarkEnergyFluid::P%DarkEnergy)
-        P%DarkEnergy%model = 1
     else if (DarkEneryModel == 'PPF') then
         allocate (TDarkEnergyPPF::P%DarkEnergy)
-        P%DarkEnergy%model = 2
     else if (DarkEneryModel == 'AXIONEFFECTIVEFLUID') then
         allocate (TAxionEffectiveFluid::P%DarkEnergy)
-        P%DarkEnergy%model = 3
     else if (DarkEneryModel == 'EARLYQUINTESSENCE') then
         allocate (TEarlyQuintessence::P%DarkEnergy)
-        P%DarkEnergy%model = 4
     else
         ErrMsg = 'Unknown dark energy model: '//trim(DarkEneryModel)
         return
@@ -804,15 +777,12 @@
     end if
 
     numstr = Ini%Read_String('massive_neutrinos')
- 
     read(numstr, *) nmassive
- 
-     if (abs(nmassive-nint(nmassive))>1e-6) then
+    if (abs(nmassive-nint(nmassive))>1e-6) then
         ErrMsg =  'massive_neutrinos should now be integer (or integer array)'
         return
     end if
     read(numstr,*, iostat=status) P%Nu_Mass_numbers(1:P%Nu_mass_eigenstates)
-
     if (status/=0) then
         ErrMsg = 'Must give num_massive number of integer physical neutrinos for each eigenstate'
         return
@@ -868,19 +838,8 @@
             write(*,*) ' -- Neglected line width effects will dominate'
         end if
 
-
-        ! Here, segmentation fault related issues
-
-        transfer_interp_matterpower = Ini%Read_Logical('transfer_interp_matterpower')
-        transfer_power_var = Ini%Read_Int('transfer_power_var')
-
-        P%unique_interp = Ini%Read_Logical('transfer_interp_matterpower')
-        P%unique_powervar = Ini%Read_Int('transfer_power_var')
-
-
-        print*, 'interp matterpower : ', transfer_interp_matterpower
-        print*, 'power var : ', transfer_power_var
-
+        call Ini%Read('transfer_interp_matterpower', transfer_interp_matterpower)
+        call Ini%Read('transfer_power_var', transfer_power_var)
         if (P%transfer%PK_num_redshifts > max_transfer_redshifts) then
             ErrMsg = 'Too many redshifts, increase max_transfer_redshifts'
             return
@@ -899,10 +858,7 @@
     call P%InitPower%ReadParams(Ini)
 
     RecombinationModel = UpperCase(Ini%Read_String_Default('recombination_model', 'Recfast'))
-
-
     if (RecombinationModel == 'COSMOREC') then
-        P%Rec_Mod = 2
 #ifdef COSMOREC
         deallocate(P%Recomb)
         allocate(TCosmoRec::P%Recomb)
@@ -911,7 +867,6 @@
         return
 #endif
     else if (RecombinationModel == 'HYREC') then
-        P%Rec_Mod = 3
 #ifdef HYREC
         deallocate(P%Recomb)
         allocate(THyRec::P%Recomb)
@@ -920,7 +875,6 @@
         return
 #endif
     else if (RecombinationModel /= 'RECFAST') then
-        P%Rec_Mod = 1
         ErrMsg =  'Unknown recombination_model: '//trim(RecombinationModel)
         return
     end if
