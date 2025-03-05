@@ -310,6 +310,429 @@
     end if
     end function dtauda
 
+    function Integrate_Romberg_dtda(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_dtda
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_dtda = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(dtda(obj,a)+dtda(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+dtda(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_dtda=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_dtda failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_dtda, error, tol
+    end if
+    
+    end function Integrate_Romberg_dtda
+
+
+    function Integrate_Romberg_dsound_da_exact(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_dsound_da_exact
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_dsound_da_exact = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(dsound_da_exact(obj,a)+dsound_da_exact(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+dsound_da_exact(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_dsound_da_exact=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_dsound_da_exact failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_dsound_da_exact, error, tol
+    end if
+    
+    end function Integrate_Romberg_dsound_da_exact
+
+    function Integrate_Romberg_ddamping_da(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_ddamping_da
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_ddamping_da = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(ddamping_da(obj,a)+ddamping_da(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+ddamping_da(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_ddamping_da=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_ddamping_da failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_ddamping_da, error, tol
+    end if
+    
+    end function Integrate_Romberg_ddamping_da
+
+    function Integrate_Romberg_Get21cmCl_l(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_Get21cmCl_l
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_Get21cmCl_l = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(Get21cmCl_l(obj,a)+Get21cmCl_l(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+Get21cmCl_l(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_Get21cmCl_l=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_Get21cmCl_l failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_Get21cmCl_l, error, tol
+    end if
+    
+    end function Integrate_Romberg_Get21cmCl_l
+
+    function Integrate_Romberg_Get21cmCl_l_avg(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_Get21cmCl_l_avg
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_Get21cmCl_l_avg = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(Get21cmCl_l_avg(obj,a)+Get21cmCl_l_avg(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+Get21cmCl_l_avg(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_Get21cmCl_l_avg=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_Get21cmCl_l_avg failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_Get21cmCl_l_avg, error, tol
+    end if
+    
+    end function Integrate_Romberg_Get21cmCl_l_avg
+
+    function Integrate_Romberg_ddragoptdepth_dz(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_ddragoptdepth_dz
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_ddragoptdepth_dz = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(ddragoptdepth_dz(obj,a)+ddragoptdepth_dz(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+ddragoptdepth_dz(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_ddragoptdepth_dz=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_dson_da_approx failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_ddragoptdepth_dz, error, tol
+    end if
+    
+    end function Integrate_Romberg_ddragoptdepth_dz
+
+
+
     function Integrate_Romberg_dsound_da_approx(obj, a, b, tol, maxit, minsteps, abs_tol)
     use MiscUtils
     use config, only : global_error_flag
@@ -375,10 +798,82 @@
     Integrate_Romberg_dsound_da_approx=g0
     if (i > max_it .and. abs(error) > tol)  then
         write(*,*) 'Warning: Integrate_Romberg_dson_da_approx failed to converge; '
-        write (*,*)'integral, error, tol:', Integrate_Romberg_dson_da_approx,error, tol
+        write (*,*)'integral, error, tol:', Integrate_Romberg_dsound_da_approx, error, tol
     end if
     
     end function Integrate_Romberg_dsound_da_approx
+
+
+
+    function Integrate_Romberg_noreion_doptdepth_dz(obj, a, b, tol, maxit, minsteps, abs_tol)
+    use MiscUtils
+    use config, only : global_error_flag
+    class(CAMBdata) :: obj
+    real(dl), intent(in) :: a,b,tol
+    integer, intent(in), optional :: maxit,minsteps
+    logical, intent(in), optional :: abs_tol
+    integer max_it, min_steps
+    real(dl) :: Integrate_Romberg_noreion_doptdepth_dz
+    integer, parameter :: MAXJ=5
+    integer :: nint, i, k, jmax, j
+    real(dl) :: h, gmax, error, g(MAXJ+1), g0, g1, fourj
+    logical abstol
+
+    !convert the class function (un-type-checked) into correct type to call correctly for class argument
+    Integrate_Romberg_noreion_doptdepth_dz = -1
+    max_it = PresentDefault(25, maxit)
+    min_steps = PresentDefault(0, minsteps)
+    abstol = DefaultFalse(abs_tol)
+    h=0.5d0*(b-a)
+    ! get pointer problem apparently for NVfortran
+    gmax=h*(noreion_doptdepth_dz(obj,a)+noreion_doptdepth_dz(obj,b))
+    if (global_error_flag /=0) return
+    g(1)=gmax
+    nint=1
+    error=1.0d20
+    i=0
+    do
+        i=i+1
+        if (i > max_it.or.(i > 5.and.abs(error) < tol) .and. nint > min_steps) exit
+        !  Calculate next trapezoidal rule approximation to integral.
+        g0=0._dl
+        do k=1,nint
+            ! get pointer problem apparently for NVfortran
+            g0=g0+noreion_doptdepth_dz(obj, a+(k+k-1)*h)
+            if (global_error_flag /=0) return
+        end do
+        g0=0.5d0*g(1)+h*g0
+        h=0.5d0*h
+        nint=nint+nint
+        jmax=min(i,MAXJ)
+        fourj=1._dl
+        do j=1,jmax
+            !  Use Richardson extrapolation.
+            fourj=4._dl*fourj
+            g1=g0+(g0-g(j))/(fourj-1._dl)
+            g(j)=g0
+            g0=g1
+        end do
+        if (abstol) then
+            error=abs(gmax-g0)
+        else
+            if (abs(g0).gt.tol) then
+                error=1._dl-gmax/g0
+            else
+                error=gmax
+            end if
+        end if
+        gmax=g0
+        g(jmax+1)=g0
+    end do
+
+    Integrate_Romberg_noreion_doptdepth_dz=g0
+    if (i > max_it .and. abs(error) > tol)  then
+        write(*,*) 'Warning: Integrate_Romberg_dson_da_approx failed to converge; '
+        write (*,*)'integral, error, tol:', Integrate_Romberg_noreion_doptdepth_dz, error, tol
+    end if
+    
+    end function Integrate_Romberg_noreion_doptdepth_dz
 
     function Integrate_Romberg_reion_doptdepth_dz(obj, a, b, tol, maxit, minsteps, abs_tol)
     use MiscUtils
@@ -903,7 +1398,8 @@
     real(dl) CAMBdata_DeltaPhysicalTimeGyr, atol
 
     atol = PresentDefault(1d-4/exp(this%CP%Accuracy%AccuracyBoost-1), in_tol)
-    CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg(this, dtda,a1,a2,atol)*Mpc/c/Gyr
+    !CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg(this, dtda,a1,a2,atol)*Mpc/c/Gyr
+    CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg_dtda(this, a1,a2,atol)*Mpc/c/Gyr
     end function CAMBdata_DeltaPhysicalTimeGyr
 
     subroutine CAMBdata_DeltaPhysicalTimeGyrArr(this, arr, a1, a2, n, tol)
@@ -1066,7 +1562,8 @@
     class(CAMBdata) :: this
     real(dl), intent(in) :: z
 
-    CAMBdata_sound_horizon = Integrate_Romberg(this,dsound_da_exact,1d-9,1/(z+1),1e-6_dl)
+    !CAMBdata_sound_horizon = Integrate_Romberg(this,dsound_da_exact,1d-9,1/(z+1),1e-6_dl)
+    CAMBdata_sound_horizon = Integrate_Romberg_dsound_da_exact(this,1d-9,1/(z+1),1e-6_dl)
 
     end function CAMBdata_sound_horizon
 
@@ -1414,8 +1911,10 @@
     real(dl) noreion_optdepth
     real(dl),intent(in) :: z
 
-    noreion_optdepth = Integrate_Romberg(this, noreion_doptdepth_dz, 0.d0, z, 1d-5, 20, 100)
-
+    !noreion_optdepth = Integrate_Romberg(this, noreion_doptdepth_dz, 0.d0, z, 1d-5, 20, 100)
+    noreion_optdepth = Integrate_Romberg_noreion_doptdepth_dz(this, &
+          0.d0, z, 1d-5, 20, 100)
+          
     end function noreion_optdepth
 
     function ddragoptdepth_dz(this,z)
@@ -1434,7 +1933,8 @@
     real(dl) dragoptdepth
     real(dl),intent(in) :: z
 
-    dragoptdepth =  Integrate_Romberg(this,ddragoptdepth_dz, 0.d0, z, 1d-5, 20, 100)
+    !dragoptdepth =  Integrate_Romberg(this,ddragoptdepth_dz, 0.d0, z, 1d-5, 20, 100)
+    dragoptdepth =  Integrate_Romberg_ddragoptdepth_dz(this,0.d0, z, 1d-5, 20, 100)
 
     end function dragoptdepth
 
@@ -1473,6 +1973,8 @@
     real(dl) zstart, zend
 
     call this%CP%Reion%get_timesteps(n, zstart, zend)
+    !GetReionizationOptDepth = Integrate_Romberg(this, reion_doptdepth_dz, &
+    !         0.d0,zstart,1d-5/this%CP%Accuracy%AccuracyBoost)
     GetReionizationOptDepth = Integrate_Romberg_reion_doptdepth_dz(this, &
         0.d0,zstart,1d-5/this%CP%Accuracy%AccuracyBoost)
 
@@ -2404,7 +2906,8 @@
             rs =State%sound_horizon(this%z_drag)
             ThermoDerivedParams( derived_rdrag ) = rs
             ThermoDerivedParams( derived_kD ) =  &
-                sqrt(1.d0/(Integrate_Romberg(State,ddamping_da, 1d-8, 1/(this%z_star+1), 1d-6)/6))
+                sqrt(1.d0/(Integrate_Romberg_ddamping_da(State, 1d-8, 1/(this%z_star+1), 1d-6)/6))
+                !sqrt(1.d0/(Integrate_Romberg(State,ddamping_da, 1d-8, 1/(this%z_star+1), 1d-6)/6))
             !$OMP SECTION
             ThermoDerivedParams( derived_zEQ ) = State%z_eq
             a_eq = 1/(1+State%z_eq)
@@ -4291,8 +4794,8 @@
                     Vars%logs = .false.
                     if (k_max < exp(PK_data%log_k(points))) then
                         !Integrate bessels properly
-                        Cl = Integrate_Romberg(Vars,Get21cmCl_l,k_min,k_max, atol, 25)
-
+                        !Cl = Integrate_Romberg(Vars,Get21cmCl_l,k_min,k_max, atol, 25)
+                        Cl = Integrate_Romberg_Get21cmCl_l(Vars,k_min,k_max, atol, 25)
                         Vars%logs = .true.
                         k_min = log(k_max)
 
@@ -4316,10 +4819,12 @@
                             k_max = min(log(max(0.3_dl,k)*18*CP%Accuracy%AccuracyBoost), PK_data%log_k(points))
                         end if
 
-                        Cl = Cl+Integrate_Romberg(Vars,Get21cmCl_l_avg,k_min,k_max, atol, 25)
+                        !Cl = Cl+Integrate_Romberg(Vars,Get21cmCl_l_avg,k_min,k_max, atol, 25)
+                        Cl = Cl+Integrate_Romberg_Get21cmCl_l_avg(Vars,Get21cmCl_l_avg,k_min,k_max, atol, 25)
                     else
                         k_max = exp(PK_data%log_k(points))
-                        Cl = Integrate_Romberg(Vars,Get21cmCl_l,k_min,k_max, atol, 25)
+                        !Cl = Integrate_Romberg(Vars,Get21cmCl_l,k_min,k_max, atol, 25)
+                        Cl = Integrate_Romberg_Get21cmCl_l(Vars,k_min,k_max, atol, 25)
                     end if
 
 
@@ -4340,3 +4845,7 @@
 
 
     end module Transfer
+
+
+
+
