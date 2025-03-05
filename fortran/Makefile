@@ -1,5 +1,5 @@
 #CAMB Makefile
-NVCOMP=no
+NVCOMP=yes
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
