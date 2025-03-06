@@ -1258,8 +1258,8 @@
     real(dl) CAMBdata_DeltaPhysicalTimeGyr, atol
 
     atol = PresentDefault(1d-4/exp(this%CP%Accuracy%AccuracyBoost-1), in_tol)
-    !CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg(this, dtda,a1,a2,atol)*Mpc/c/Gyr
-    CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg_dtda(this, a1,a2,atol)*Mpc/c/Gyr
+    CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg(this, dtda,a1,a2,atol)*Mpc/c/Gyr
+    !CAMBdata_DeltaPhysicalTimeGyr = Integrate_Romberg_dtda(this, a1,a2,atol)*Mpc/c/Gyr
     end function CAMBdata_DeltaPhysicalTimeGyr
 
     subroutine CAMBdata_DeltaPhysicalTimeGyrArr(this, arr, a1, a2, n, tol)
