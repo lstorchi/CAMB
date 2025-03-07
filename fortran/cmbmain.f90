@@ -233,6 +233,8 @@
     Type(ClTransferData) :: ThisCT 
     integer q_ix
     Type(TTimer) :: Timer
+    integer :: start_count, end_count, count_rate
+    real :: elapsed_time
 
     if (CP%WantScalars) ThisSources => State%ScalarTimeSources
 
@@ -267,10 +269,21 @@
 
         !Begin k-loop and integrate Sources*Bessels over time
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
+        call system_clock(start_count, count_rate)
+#ifdef USEACC
+!        !$acc  parallel loop copy(ThisCT) private(q_ix)
+#endif        
         do q_ix=1,ThisCT%q%npoints
             call SourceToTransfers(ThisCT, q_ix)
         end do !q loop
+#ifdef USEACC
+!        !$acc end parallel
+#endif
         !$OMP END PARALLEL DO
+        call system_clock(end_count, count_rate)
+        elapsed_time = real(end_count - start_count) / real(count_rate)
+
+        write(*,*) 'Time taken for main task:', elapsed_time
 
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if

@@ -1,5 +1,6 @@
 #CAMB Makefile
 NVCOMP=yes
+OPENACC=yes
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
@@ -87,7 +88,11 @@ else
   ifeq "$(NVCOMP)" "yes"
     COMPILER=nvfortran
     F90C=nvfortran
-    COMMON_FFLAGS = -MMD -cpp -Minform=warn -Mextend
+    ifeq "$(OPENACC)" "yes"
+      COMMON_FFLAGS = -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc61,cuda12.1 -Minfo=accel -cuda
+    else
+      COMMON_FFLAGS = -cpp -Mextend -Minform=warn -Mextend
+    endif
     FFLAGS = -O0 -g $(COMMON_FFLAGS)
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
