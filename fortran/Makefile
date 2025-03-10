@@ -88,8 +88,10 @@ else
   ifeq "$(NVCOMP)" "yes"
     COMPILER=nvfortran
     F90C=nvfortran
+    #  nvidia-smi --query-gpu=compute_cap --format=csv
+    # ls /opt/nvidia/hpc_sdk/Linux_x86_64/25.1/cuda/ to see cuda version
     ifeq "$(OPENACC)" "yes"
-      COMMON_FFLAGS = -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc61,cuda12.1 -Minfo=accel -cuda
+      COMMON_FFLAGS = -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6 -Minfo=accel -cuda
     else
       COMMON_FFLAGS = -cpp -Mextend -Minform=warn -Mextend
     endif
