@@ -270,15 +270,18 @@
         !Begin k-loop and integrate Sources*Bessels over time
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
         call system_clock(start_count, count_rate)
+! OPEANACC
 #ifdef USEACC
-!        !$acc  parallel loop copy(ThisCT) private(q_ix)
+        !$acc  parallel loop copyin(State) copy(ThisCT) private(q_ix)
 #endif        
+        write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
         do q_ix=1,ThisCT%q%npoints
-            call SourceToTransfers(ThisCT, q_ix)
+            call SourceToTransfers(ThisCT, q_ix, State, ThisSources)
         end do !q loop
 #ifdef USEACC
-!        !$acc end parallel
+        !$acc end parallel
 #endif
+! OPEANACC
         !$OMP END PARALLEL DO
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
@@ -530,13 +533,17 @@
 
     end subroutine GetLimberTransfers
 
-    subroutine SourceToTransfers(ThisCT, q_ix)
+! OPEANACC
+    subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin)
+    type(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
+    Type(TTimeSources) :: ThisSourcesin
     integer q_ix
     type(IntegrationVars) :: IV
 
-    allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
-    if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+!    maybe need dto move outside 
+    allocate(IV%Source_q(Statein%TimeSteps%npoints,ThisSourcesin%SourceNum))
+    if (.not.Statein%flat) allocate(IV%ddSource_q(Statein%TimeSteps%npoints,ThisSources%SourceNum))
 
     call IntegrationVars_init(IV)
 
@@ -548,11 +555,13 @@
 
     call DoSourceIntegration(IV, ThisCT)
 
-    if (.not.State%flat) deallocate(IV%ddSource_q)
+    if (.not.Statein%flat) deallocate(IV%ddSource_q)
     deallocate(IV%Source_q)
+    
+!    maybe need dto move outsid
 
     end subroutine SourceToTransfers
-
+! OPEANACC
 
     subroutine InitTransfer
     integer nu,lastnu, ntodo, nq, q_ix, first_i
