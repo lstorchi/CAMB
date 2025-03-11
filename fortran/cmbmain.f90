@@ -273,10 +273,10 @@
 ! OPEANACC
 #ifdef USEACC
         write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc  parallel loop copyin(State, CP, ThisSources) copy(ThisCT) private(q_ix)
+        !$acc  parallel loop copyin(State, CP, ThisSources, ScaledSrc, ddScaledSrc) copy(ThisCT) private(q_ix)
 #endif        
         do q_ix=1,ThisCT%q%npoints
-            call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP)
+            call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP, ScaledSrc, ddScaledSrc)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel
@@ -534,13 +534,16 @@
     end subroutine GetLimberTransfers
 
 ! OPEANACC
-    subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin)
+    subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin, ScaledSrcin, &
+        ddScaledSrcin)
     type(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer q_ix
     Type(CAMBParams) :: CPin
     type(IntegrationVars) :: IV
+    real(dl), dimension(:,:,:) ::  ScaledSrcin
+    real(dl), dimension(:,:,:) :: ddScaledSrcin
 
 !    maybe need dto move outside 
     allocate(IV%Source_q(Statein%TimeSteps%npoints,ThisSourcesin%SourceNum))
@@ -552,7 +555,7 @@
     IV%q =ThisCT%q%points(q_ix)
     IV%dq= ThisCT%q%dpoints(q_ix)
 
-    call InterpolateSources(IV, ThisSourcesin, CPin, Statein)
+    call InterpolateSources(IV, ThisSourcesin, CPin, Statein, ScaledSrcin, ddScaledSrcin)
 
     call DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin)
 
@@ -1330,7 +1333,8 @@
     end subroutine setkValuesForInt
 
 ! OPENACC
-    subroutine InterpolateSources(IV, ThisSourcesin, CPin, Statein)
+    subroutine InterpolateSources(IV, ThisSourcesin, CPin, Statein, ScaledSrcin, &
+        ddScaledSrcin)
     implicit none
     integer i,khi,klo, step
     real(dl) xf,b0,ho,a0,ho2o6,a03,b03
@@ -1338,6 +1342,8 @@
     Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
     type(CAMBdata) :: Statein
+    real(dl), dimension(:,:,:) :: ScaledSrcin
+    real(dl), dimension(:,:,:) :: ddScaledSrcin
 
     !     finding position of k in table Evolve_q to do the interpolation.
 
@@ -1369,8 +1375,8 @@
             if (IV%q*Statein%TimeSteps%points(i) < max_etak_tensor.and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) =a0*scaledSrc(klo,:,i)+&
-                    b0*scaledSrc(khi,:,i)+(a03 *ddScaledSrc(klo,:,i)+ &
-                    b03*ddScaledSrc(khi,:,i)) *ho2o6
+                    b0*scaledSrc(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
+                    b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
                 IV%Source_q(i,:) = 0
             end if
@@ -1378,8 +1384,8 @@
         if (CPin%WantVectors) then
             if (IV%q*Statein%TimeSteps%points(i) < max_etak_vector.and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) =a0*ScaledSrc(klo,:,i) + b0*ScaledSrc(khi,:,i)+(a03 *ddScaledSrc(klo,:,i)+ &
-                    b03*ddScaledSrc(khi,:,i)) *ho2o6
+                IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i) + b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
+                    b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
                 IV%Source_q(i,:) = 0
             end if
@@ -1389,8 +1395,8 @@
             if ((DebugEvolution .or. WantLateTime .or. IV%q*Statein%TimeSteps%points(i) < max_etak_scalar) &
                 .and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) = a0 * ScaledSrc(klo,:,i) +  b0 * ScaledSrc(khi,:,i) + (a03*ddScaledSrc(klo,:,i) + &
-                    b03 * ddScaledSrc(khi,:,i)) * ho2o6
+                IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                    b03 * ddScaledSrcin(khi,:,i)) * ho2o6
             else
                 IV%Source_q(i,:) = 0
             end if
@@ -1450,11 +1456,13 @@
     if (Statein%flat) then
         call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin, ThisSourcesin)
     else
-        do j=1,ThisCT%ls%nl
-            ll=ThisCT%ls%l(j)
-            if (ll>llmax) exit
-            call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,CPin,ThisSourcesin)
-        end do !j loop
+        print * , "not yet fully ported"
+        stop
+        !do j=1,ThisCT%ls%nl
+        !    ll=ThisCT%ls%l(j)
+        !    if (ll>llmax) exit
+        !    call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,CPin,ThisSourcesin)
+        !end do !j loop
     end if
 
     end subroutine DoSourceIntegration
