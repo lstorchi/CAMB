@@ -272,9 +272,9 @@
         call system_clock(start_count, count_rate)
 ! OPEANACC
 #ifdef USEACC
+        write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
         !$acc  parallel loop copyin(State, CP, ThisSources) copy(ThisCT) private(q_ix)
 #endif        
-        write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
         do q_ix=1,ThisCT%q%npoints
             call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP)
         end do !q loop
