@@ -554,7 +554,7 @@
 
     call InterpolateSources(IV, ThisSourcesin, CPin, Statein)
 
-    call DoSourceIntegration(IV, ThisCT, Statein, CPin)
+    call DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin)
 
     if (.not.Statein%flat) deallocate(IV%ddSource_q)
     deallocate(IV%Source_q)
@@ -1418,7 +1418,7 @@
     end  subroutine IntegrationVars_Init
 
 ! OPENACC
-    subroutine DoSourceIntegration(IV, ThisCT, Statein, CPin) !for particular wave number q
+    subroutine DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin) !for particular wave number q
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
     integer j,ll,llmax
@@ -1426,8 +1426,9 @@
     real(dl) :: sixpibynu
     type(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
+    Type(TTimeSources) :: ThisSourcesin
 
-    nu=IV%q*State%curvature_radius
+    nu=IV%q*Statein%curvature_radius
     sixpibynu  = 6._dl*const_pi/nu
 
     if (Statein%closed) then
@@ -1447,12 +1448,12 @@
     end if
 
     if (Statein%flat) then
-        call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin)
+        call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin, ThisSourcesin)
     else
         do j=1,ThisCT%ls%nl
             ll=ThisCT%ls%l(j)
             if (ll>llmax) exit
-            call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,CPin)
+            call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,CPin,ThisSourcesin)
         end do !j loop
     end if
 
@@ -1480,17 +1481,18 @@
 
 !OPENACC
     !flat source integration
-    subroutine DoFlatIntegration(IV, ThisCT, llmax, Statein, CPin)
+    subroutine DoFlatIntegration(IV, ThisCT, llmax, Statein, CPin, ThisSourcesin)
     implicit none
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
+    Type(TTimeSources) :: ThisSourcesin
     integer llmax
     integer j
     logical DoInt
     real(dl) xlim,xlmax1
     real(dl) tmin, tmax
     real(dl) a2, J_l, aa(IV%SourceSteps), fac(IV%SourceSteps)
-    real(dl) xf, sums(ThisSources%SourceNum)
+    real(dl) xf, sums(ThisSourcesin%SourceNum)
     real(dl) qmax_int
     integer bes_ix,n, bes_index(IV%SourceSteps)
     integer custom_source_off, s_ix
@@ -1543,7 +1545,7 @@
         !As long as we sample the source well enough, it is sufficient to
         !interpolate the Bessel functions only
 
-        if (ThisSources%SourceNum==2) then
+        if (ThisSourcesin%SourceNum==2) then
             !This is the innermost loop, so we separate the no lensing scalar case to optimize it
             do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
                 a2=aa(n)
@@ -1598,7 +1600,7 @@
                             sums(2) = sums(2) + IV%Source_q(n,2)*J_l
                             sums(3) = sums(3) + IV%Source_q(n,3)*J_l
                             if (n >= nwin) then
-                                do s_ix = 4, ThisSources%SourceNum
+                                do s_ix = 4, ThisSourcesin%SourceNum
                                     sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
                                 end do
                             end if
@@ -1619,7 +1621,7 @@
                             sums(3) = sums(3) + IV%Source_q(n,3)*J_l
                             sums(custom_source_off) = sums(custom_source_off) +  IV%Source_q(n,custom_source_off)*J_l
                             if (n >= nwin) then
-                                do s_ix = 4, ThisSources%NonCustomSourceNum
+                                do s_ix = 4, ThisSourcesin%NonCustomSourceNum
                                     sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
                                 end do
                             end if
@@ -1642,9 +1644,9 @@
                     sums(3)=0
                 end if
             end if
-            if (.not. DoInt .and. ThisSources%NonCustomSourceNum>3) then
-                if (any(ThisCT%limber_l_min(4:ThisSources%NonCustomSourceNum)==0 .or. &
-                    ThisCT%limber_l_min(4:ThisSources%NonCustomSourceNum) > j)) then
+            if (.not. DoInt .and. ThisSourcesin%NonCustomSourceNum>3) then
+                if (any(ThisCT%limber_l_min(4:ThisSourcesin%NonCustomSourceNum)==0 .or. &
+                    ThisCT%limber_l_min(4:ThisSourcesin%NonCustomSourceNum) > j)) then
                     !When CMB does not need integral but other sources do
                     do n= Statein%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows), &
                         min(IV%SourceSteps, Statein%TimeSteps%IndexOf(tmax))
@@ -1658,7 +1660,7 @@
                         J_l = J_l * Statein%TimeSteps%dpoints(n)
 
                         sums(4) = sums(4) + IV%Source_q(n, 4) * J_l
-                        do s_ix = 5, ThisSources%NonCustomSourceNum
+                        do s_ix = 5, ThisSourcesin%NonCustomSourceNum
                             sums(s_ix) = sums(s_ix) + IV%Source_q(n, s_ix) * J_l
                         end do
                     end do
@@ -1675,15 +1677,16 @@
 
     !non-flat source integration
 
-    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,Statein,CPin)
+    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,Statein,CPin,ThisSourcesin)
     use SpherBessels
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
+    Type(TTimeSources) :: ThisSourcesin
     logical DoInt
     integer l,j, nstart,nDissipative,ntop,nbot,nrange,nnow
     real(dl) nu,ChiDissipative,ChiStart,tDissipative,y1,y2,y1dis,y2dis
     real(dl) xf,x,chi, miny1
-    real(dl) sums(ThisSources%SourceNum),out_arr(ThisSources%SourceNum), qmax_int
+    real(dl) sums(ThisSourcesin%SourceNum),out_arr(ThisSourcesin%SourceNum), qmax_int
     real(dl) BessIntBoost
     type(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
@@ -1720,13 +1723,13 @@
     chi=ChiStart
 
     if (CPin%WantScalars) then !Do Scalars
-        if (ThisSources%SourceNum > 3) call MpiStop('Non-flat not implemented for extra sources')
+        if (ThisSourcesin%SourceNum > 3) call MpiStop('Non-flat not implemented for extra sources')
         !Integrate chi down in dissipative region
         ! cuts off when ujl gets small
         miny1= 0.5d-4/l/BessIntBoost
         sums=0
         qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/(Statein%chi0*Statein%curvature_radius)*1.2
-        DoInt =  ThisSources%SourceNum/=3 .or. IV%q < qmax_int
+        DoInt =  ThisSourcesin%SourceNum/=3 .or. IV%q < qmax_int
         if (DoInt) then
             if ((nstart < min(Statein%TimeSteps%npoints-1,IV%SourceSteps)).and.(y1dis > miny1)) then
                 y1=y1dis
@@ -1766,7 +1769,7 @@
                 end do
             end if
         end if !DoInt
-        if (ThisSources%SourceNum==3 .and. (.not. DoInt .or. UseLimber(l))) then
+        if (ThisSourcesin%SourceNum==3 .and. (.not. DoInt .or. UseLimber(l))) then
             !Limber approximation for small scale lensing (better than poor version of above integral)
             xf = Statein%tau0-Statein%invsinfunc((l+0.5_dl)/nu)*Statein%curvature_radius
             if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
