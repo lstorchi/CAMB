@@ -272,11 +272,11 @@
         call system_clock(start_count, count_rate)
 ! OPEANACC
 #ifdef USEACC
-        !$acc  parallel loop copyin(State) copy(ThisCT) private(q_ix)
+        !$acc  parallel loop copyin(State, CP, ThisSources) copy(ThisCT) private(q_ix)
 #endif        
         write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
         do q_ix=1,ThisCT%q%npoints
-            call SourceToTransfers(ThisCT, q_ix, State, ThisSources)
+            call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel
@@ -534,11 +534,12 @@
     end subroutine GetLimberTransfers
 
 ! OPEANACC
-    subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin)
+    subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin)
     type(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer q_ix
+    Type(CAMBParams) :: CPin
     type(IntegrationVars) :: IV
 
 !    maybe need dto move outside 
@@ -551,9 +552,9 @@
     IV%q =ThisCT%q%points(q_ix)
     IV%dq= ThisCT%q%dpoints(q_ix)
 
-    call InterpolateSources(IV)
+    call InterpolateSources(IV, ThisSourcesin, CPin, Statein)
 
-    call DoSourceIntegration(IV, ThisCT)
+    call DoSourceIntegration(IV, ThisCT, Statein, CPin)
 
     if (.not.Statein%flat) deallocate(IV%ddSource_q)
     deallocate(IV%Source_q)
@@ -1328,31 +1329,32 @@
 
     end subroutine setkValuesForInt
 
-    subroutine InterpolateSources(IV)
+! OPENACC
+    subroutine InterpolateSources(IV, ThisSourcesin, CPin, Statein)
     implicit none
     integer i,khi,klo, step
     real(dl) xf,b0,ho,a0,ho2o6,a03,b03
     type(IntegrationVars) IV
-    Type(TRanges), pointer :: Evolve_q
-
-    Evolve_q => ThisSources%Evolve_q
+    Type(CAMBParams) :: CPin
+    Type(TTimeSources) :: ThisSourcesin
+    type(CAMBdata) :: Statein
 
     !     finding position of k in table Evolve_q to do the interpolation.
 
     !Can't use the following in closed case because regions are not set up (only points)
-    !           klo = min(Evolve_q%npoints-1,Evolve_q%IndexOf(IV%q))
+    !           klo = min(ThisSourcesin%Evolve_q%npoints-1,ThisSourcesin%Evolve_q%IndexOf(IV%q))
     !This is a bit inefficient, but thread safe
     klo=1
-    do while ((IV%q > Evolve_q%points(klo+1)).and.(klo < (Evolve_q%npoints-1)))
+    do while ((IV%q > ThisSourcesin%Evolve_q%points(klo+1)).and.(klo < (ThisSourcesin%Evolve_q%npoints-1)))
         klo=klo+1
     end do
 
     khi=klo+1
 
 
-    ho=Evolve_q%points(khi)-Evolve_q%points(klo)
-    a0=(Evolve_q%points(khi)-IV%q)/ho
-    b0=(IV%q-Evolve_q%points(klo))/ho
+    ho=ThisSourcesin%Evolve_q%points(khi)-ThisSourcesin%Evolve_q%points(klo)
+    a0=(ThisSourcesin%Evolve_q%points(khi)-IV%q)/ho
+    b0=(IV%q-ThisSourcesin%Evolve_q%points(klo))/ho
     ho2o6 = ho**2/6
     a03=(a0**3-a0)
     b03=(b0**3-b0)
@@ -1361,10 +1363,10 @@
     !     Interpolating the source as a function of time for the present
     !     wavelength.
     step=2
-    do i=2, State%TimeSteps%npoints
-        xf=IV%q*(State%tau0-State%TimeSteps%points(i))
-        if (CP%WantTensors) then
-            if (IV%q*State%TimeSteps%points(i) < max_etak_tensor.and. xf > 1.e-8_dl) then
+    do i=2, Statein%TimeSteps%npoints
+        xf=IV%q*(Statein%tau0-Statein%TimeSteps%points(i))
+        if (CPin%WantTensors) then
+            if (IV%q*Statein%TimeSteps%points(i) < max_etak_tensor.and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) =a0*scaledSrc(klo,:,i)+&
                     b0*scaledSrc(khi,:,i)+(a03 *ddScaledSrc(klo,:,i)+ &
@@ -1373,8 +1375,8 @@
                 IV%Source_q(i,:) = 0
             end if
         end if
-        if (CP%WantVectors) then
-            if (IV%q*State%TimeSteps%points(i) < max_etak_vector.and. xf > 1.e-8_dl) then
+        if (CPin%WantVectors) then
+            if (IV%q*Statein%TimeSteps%points(i) < max_etak_vector.and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) =a0*ScaledSrc(klo,:,i) + b0*ScaledSrc(khi,:,i)+(a03 *ddScaledSrc(klo,:,i)+ &
                     b03*ddScaledSrc(khi,:,i)) *ho2o6
@@ -1383,8 +1385,8 @@
             end if
         end if
 
-        if (CP%WantScalars) then
-            if ((DebugEvolution .or. WantLateTime .or. IV%q*State%TimeSteps%points(i) < max_etak_scalar) &
+        if (CPin%WantScalars) then
+            if ((DebugEvolution .or. WantLateTime .or. IV%q*Statein%TimeSteps%points(i) < max_etak_scalar) &
                 .and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) = a0 * ScaledSrc(klo,:,i) +  b0 * ScaledSrc(khi,:,i) + (a03*ddScaledSrc(klo,:,i) + &
@@ -1396,15 +1398,15 @@
     end do
     IV%SourceSteps = step
 
-    if (.not.State%flat) then
+    if (.not.Statein%flat) then
         do i=1, ThisSources%SourceNum
-            call spline_def(State%TimeSteps%points,IV%Source_q(:,i),State%TimeSteps%npoints,&
+            call spline_def(Statein%TimeSteps%points,IV%Source_q(:,i),Statein%TimeSteps%npoints,&
                 IV%ddSource_q(:,i))
         end do
     end if
 
-    end subroutine
-
+    end subroutine InterpolateSources
+! OPENACC
 
     subroutine IntegrationVars_Init(IV)
     type(IntegrationVars), intent(INOUT) :: IV
@@ -1415,44 +1417,47 @@
 
     end  subroutine IntegrationVars_Init
 
-
-    subroutine DoSourceIntegration(IV, ThisCT) !for particular wave number q
+! OPENACC
+    subroutine DoSourceIntegration(IV, ThisCT, Statein, CPin) !for particular wave number q
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
     integer j,ll,llmax
     real(dl) nu
     real(dl) :: sixpibynu
+    type(CAMBdata) :: Statein
+    Type(CAMBParams) :: CPin
 
     nu=IV%q*State%curvature_radius
     sixpibynu  = 6._dl*const_pi/nu
 
-    if (State%closed) then
-        if (nu<20 .or. State%tau0/State%curvature_radius+sixpibynu > const_pi/2) then
+    if (Statein%closed) then
+        if (nu<20 .or. Statein%tau0/Statein%curvature_radius+sixpibynu > const_pi/2) then
             llmax=nint(nu)-1
         else
-            llmax=nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
+            llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
             llmax=min(llmax,nint(nu)-1)  !nu >= l+1
         end if
     else
-        llmax=nint(nu*State%chi0)
+        llmax=nint(nu*Statein%chi0)
         if (llmax<15) then
             llmax=17 !AL Sept2010 changed from 15 to get l=16 smooth
         else
-            llmax=nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
+            llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
         end if
     end if
 
-    if (State%flat) then
-        call DoFlatIntegration(IV,ThisCT, llmax)
+    if (Statein%flat) then
+        call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin)
     else
         do j=1,ThisCT%ls%nl
             ll=ThisCT%ls%l(j)
             if (ll>llmax) exit
-            call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu)
+            call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,CPin)
         end do !j loop
     end if
 
     end subroutine DoSourceIntegration
+! OPENACC
 
     function UseLimber(l)
     !Calculate lensing potential power using Limber rather than j_l integration
@@ -1473,8 +1478,9 @@
 
     end function UseLimber
 
+!OPENACC
     !flat source integration
-    subroutine DoFlatIntegration(IV, ThisCT, llmax)
+    subroutine DoFlatIntegration(IV, ThisCT, llmax, Statein, CPin)
     implicit none
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1490,15 +1496,17 @@
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
+    type(CAMBdata) :: Statein
+    Type(CAMBParams) :: CPin
 
-    BessIntBoost = CP%Accuracy%AccuracyBoost*CP%Accuracy%BessIntBoost
-    custom_source_off = State%num_redshiftwindows + State%num_extra_redshiftwindows + 4
+    BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
+    custom_source_off = Statein%num_redshiftwindows + Statein%num_extra_redshiftwindows + 4
 
     !     Find the position in the xx table for the x correponding to each
     !     timestep
 
     do j=1,IV%SourceSteps !Precompute arrays for this k
-        xf=abs(IV%q*(State%tau0-State%TimeSteps%points(j)))
+        xf=abs(IV%q*(Statein%tau0-Statein%TimeSteps%points(j)))
         bes_index(j)=BessRanges%IndexOf(xf)
         !Precomputed values for the interpolation
         bes_ix= bes_index(j)
@@ -1513,23 +1521,23 @@
         xlim=max(xlim,xlimmin)
         xlim=ThisCT%ls%l(j)-xlim
         if (full_bessel_integration .or. do_bispectrum) then
-            tmin = State%TimeSteps%points(2)
+            tmin = Statein%TimeSteps%points(2)
         else
             xlmax1=80*ThisCT%ls%l(j)*BessIntBoost
-            if (State%num_redshiftwindows>0 .and. CP%WantScalars) then
+            if (Statein%num_redshiftwindows>0 .and. CPin%WantScalars) then
                 xlmax1=80*ThisCT%ls%l(j)*8*BessIntBoost !Have to be careful if sharp spikes due to late time sources
             end if
-            tmin=State%tau0-xlmax1/IV%q
-            tmin=max(State%TimeSteps%points(2),tmin)
+            tmin=Statein%tau0-xlmax1/IV%q
+            tmin=max(Statein%TimeSteps%points(2),tmin)
         end if
-        tmax=State%tau0-xlim/IV%q
-        tmax=min(State%tau0,tmax)
-        tmin=max(State%TimeSteps%points(2),tmin)
-        if (.not. CP%Want_CMB .and. .not. CP%Want_CMB_lensing) &
-            tmin = max(tmin, State%ThermoData%tau_start_redshiftwindows)
+        tmax=Statein%tau0-xlim/IV%q
+        tmax=min(Statein%tau0,tmax)
+        tmin=max(Statein%TimeSteps%points(2),tmin)
+        if (.not. CPin%Want_CMB .and. .not. CPin%Want_CMB_lensing) &
+            tmin = max(tmin, Statein%ThermoData%tau_start_redshiftwindows)
 
 
-        if (tmax < State%TimeSteps%points(2)) exit
+        if (tmax < Statein%TimeSteps%points(2)) exit
         sums = 0
 
         !As long as we sample the source well enough, it is sufficient to
@@ -1537,32 +1545,32 @@
 
         if (ThisSources%SourceNum==2) then
             !This is the innermost loop, so we separate the no lensing scalar case to optimize it
-            do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+            do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
                 a2=aa(n)
                 bes_ix=bes_index(n)
 
                 J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
                     *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
 
-                J_l = J_l*State%TimeSteps%dpoints(n)
+                J_l = J_l*Statein%TimeSteps%dpoints(n)
                 sums(1) = sums(1) + IV%Source_q(n,1)*J_l
                 sums(2) = sums(2) + IV%Source_q(n,2)*J_l
             end do
         else
-            qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/State%tau0*1.2
-            DoInt = .not. CP%WantScalars .or. IV%q < qmax_int
+            qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/Statein%tau0*1.2
+            DoInt = .not. CPin%WantScalars .or. IV%q < qmax_int
             !Do integral if any useful contribution to the CMB, or large scale effects
 
             if (DoInt) then
-                if (CP%CustomSources%num_custom_sources==0 .and. State%num_redshiftwindows==0) then
-                    do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                if (CPin%CustomSources%num_custom_sources==0 .and. Statein%num_redshiftwindows==0) then
+                    do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
                         !Full Bessel integration
                         a2=aa(n)
                         bes_ix=bes_index(n)
 
                         J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
                             *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
-                        J_l = J_l*State%TimeSteps%dpoints(n)
+                        J_l = J_l*Statein%TimeSteps%dpoints(n)
 
                         !The unwrapped form is faster
                         sums(1) = sums(1) + IV%Source_q(n,1)*J_l
@@ -1570,20 +1578,20 @@
                         sums(3) = sums(3) + IV%Source_q(n,3)*J_l
                     end do
                 else
-                    if (State%num_redshiftwindows>0) then
-                        nwin = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                    if (Statein%num_redshiftwindows>0) then
+                        nwin = Statein%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows)
                     else
-                        nwin = State%TimeSteps%npoints+1
+                        nwin = Statein%TimeSteps%npoints+1
                     end if
-                    if (CP%CustomSources%num_custom_sources==0) then
-                        do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                    if (CPin%CustomSources%num_custom_sources==0) then
+                        do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
                             !Full Bessel integration
                             a2=aa(n)
                             bes_ix=bes_index(n)
 
                             J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
                                 *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
-                            J_l = J_l*State%TimeSteps%dpoints(n)
+                            J_l = J_l*Statein%TimeSteps%dpoints(n)
 
                             !The unwrapped form is faster
                             sums(1) = sums(1) + IV%Source_q(n,1)*J_l
@@ -1596,14 +1604,14 @@
                             end if
                         end do
                     else
-                        do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                        do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
                             !Full Bessel integration
                             a2=aa(n)
                             bes_ix=bes_index(n)
 
                             J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
                                 *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
-                            J_l = J_l*State%TimeSteps%dpoints(n)
+                            J_l = J_l*Statein%TimeSteps%dpoints(n)
 
                             !The unwrapped form is faster
                             sums(1) = sums(1) + IV%Source_q(n,1)*J_l
@@ -1615,19 +1623,19 @@
                                     sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
                                 end do
                             end if
-                            do s_ix = custom_source_off+1, custom_source_off+CP%CustomSources%num_custom_sources -1
+                            do s_ix = custom_source_off+1, custom_source_off+CPin%CustomSources%num_custom_sources -1
                                 sums(s_ix) = sums(s_ix)  + IV%Source_q(n,s_ix)*J_l
                             end do
                         end do
                     end if
                 end if
             end if
-            if (.not. DoInt .or. UseLimber(ThisCT%ls%l(j)) .and. CP%WantScalars) then
+            if (.not. DoInt .or. UseLimber(ThisCT%ls%l(j)) .and. CPin%WantScalars) then
                 !Limber approximation for small scale lensing (better than poor version of above integral)
-                xf = State%tau0-(ThisCT%ls%l(j)+0.5_dl)/IV%q
-                if (xf < State%TimeSteps%Highest .and. xf > State%TimeSteps%Lowest) then
-                    n=State%TimeSteps%IndexOf(xf)
-                    xf= (xf-State%TimeSteps%points(n))/(State%TimeSteps%points(n+1)-State%TimeSteps%points(n))
+                xf = Statein%tau0-(ThisCT%ls%l(j)+0.5_dl)/IV%q
+                if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
+                    n=Statein%TimeSteps%IndexOf(xf)
+                    xf= (xf-Statein%TimeSteps%points(n))/(Statein%TimeSteps%points(n+1)-Statein%TimeSteps%points(n))
                     sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
                         sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/IV%q
                 else
@@ -1638,8 +1646,8 @@
                 if (any(ThisCT%limber_l_min(4:ThisSources%NonCustomSourceNum)==0 .or. &
                     ThisCT%limber_l_min(4:ThisSources%NonCustomSourceNum) > j)) then
                     !When CMB does not need integral but other sources do
-                    do n= State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows), &
-                        min(IV%SourceSteps, State%TimeSteps%IndexOf(tmax))
+                    do n= Statein%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows), &
+                        min(IV%SourceSteps, Statein%TimeSteps%IndexOf(tmax))
                         !Full Bessel integration
                         a2 = aa(n)
                         bes_ix = bes_index(n)
@@ -1647,7 +1655,7 @@
                         J_l = a2 * ajl(bes_ix, j) + (1 - a2) * (ajl(bes_ix + 1, j) -&
                             ((a2 + 1) * ajlpr(bes_ix, j) + (2 - a2) * &
                             ajlpr(bes_ix + 1, j)) * fac(n)) !cubic spline
-                        J_l = J_l * State%TimeSteps%dpoints(n)
+                        J_l = J_l * Statein%TimeSteps%dpoints(n)
 
                         sums(4) = sums(4) + IV%Source_q(n, 4) * J_l
                         do s_ix = 5, ThisSources%NonCustomSourceNum
@@ -1667,7 +1675,7 @@
 
     !non-flat source integration
 
-    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu)
+    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,Statein,CPin)
     use SpherBessels
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1677,59 +1685,61 @@
     real(dl) xf,x,chi, miny1
     real(dl) sums(ThisSources%SourceNum),out_arr(ThisSources%SourceNum), qmax_int
     real(dl) BessIntBoost
+    type(CAMBdata) :: Statein
+    Type(CAMBParams) :: CPin
 
-    BessIntBoost = CP%Accuracy%AccuracyBoost*CP%Accuracy%BessIntBoost
+    BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
 
     !Calculate chi where for smaller chi it is dissipative
     x=sqrt(real(l*(l+1),dl))/nu
 
-    ChiDissipative=State%invsinfunc(x)
+    ChiDissipative=Statein%invsinfunc(x)
 
     ChiStart=ChiDissipative
     !Move down a bit to get smaller value (better accuracy integrating up from small values)
     if (nu<300) ChiStart = max(ChiDissipative-1._dl/nu,1d-6)   !max(ChiDissipative-1._dl/nu,1d-6)
 
     !Then get nearest source point with lower Chi...
-    tDissipative=State%tau0 - State%curvature_radius*ChiStart
-    if (tDissipative<State%TimeSteps%points(1)) then
+    tDissipative=Statein%tau0 - Statein%curvature_radius*ChiStart
+    if (tDissipative<Statein%TimeSteps%points(1)) then
         nDissipative=2
     else
-        nDissipative = State%TimeSteps%IndexOf(tDissipative)+1
+        nDissipative = Statein%TimeSteps%IndexOf(tDissipative)+1
     endif
-    nDissipative=min(nDissipative,State%TimeSteps%npoints-1)
+    nDissipative=min(nDissipative,Statein%TimeSteps%npoints-1)
 
-    tDissipative = State%TimeSteps%points(nDissipative)
+    tDissipative = Statein%TimeSteps%points(nDissipative)
 
-    ChiStart =  max(1d-8,(State%tau0-tDissipative)/State%curvature_radius)
+    ChiStart =  max(1d-8,(Statein%tau0-tDissipative)/Statein%curvature_radius)
 
     !Get values at ChiStart
 
-    call USpherBesselWithDeriv(State%closed,CP,ChiStart,l,nu,y1dis,y2dis)
+    call USpherBesselWithDeriv(Statein%closed,CPin,ChiStart,l,nu,y1dis,y2dis)
 
     nstart=nDissipative
     chi=ChiStart
 
-    if (CP%WantScalars) then !Do Scalars
+    if (CPin%WantScalars) then !Do Scalars
         if (ThisSources%SourceNum > 3) call MpiStop('Non-flat not implemented for extra sources')
         !Integrate chi down in dissipative region
         ! cuts off when ujl gets small
         miny1= 0.5d-4/l/BessIntBoost
         sums=0
-        qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/(State%chi0*State%curvature_radius)*1.2
+        qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/(Statein%chi0*Statein%curvature_radius)*1.2
         DoInt =  ThisSources%SourceNum/=3 .or. IV%q < qmax_int
         if (DoInt) then
-            if ((nstart < min(State%TimeSteps%npoints-1,IV%SourceSteps)).and.(y1dis > miny1)) then
+            if ((nstart < min(Statein%TimeSteps%npoints-1,IV%SourceSteps)).and.(y1dis > miny1)) then
                 y1=y1dis
                 y2=y2dis
                 nnow=nstart
-                do nrange = 1,State%TimeSteps%Count
-                    if (nrange == State%TimeSteps%count) then
-                        ntop = State%TimeSteps%npoints -1
+                do nrange = 1,Statein%TimeSteps%Count
+                    if (nrange == Statein%TimeSteps%count) then
+                        ntop = Statein%TimeSteps%npoints -1
                     else
-                        ntop = State%TimeSteps%R(nrange+1)%start_index
+                        ntop = Statein%TimeSteps%R(nrange+1)%start_index
                     end if
                     if (nnow < ntop) then
-                        call DoRangeInt(IV,chi,ChiDissipative,nnow,ntop,State%TimeSteps%R(nrange)%delta, &
+                        call DoRangeInt(IV,chi,ChiDissipative,nnow,ntop,Statein%TimeSteps%R(nrange)%delta, &
                             nu,l,y1,y2,out_arr)
                         sums  = sums + out_arr
                         nnow = ntop
@@ -1744,10 +1754,10 @@
                 y2=y2dis
                 chi=ChiStart
                 nnow=nstart
-                do nrange = State%TimeSteps%Count,1,-1
-                    nbot = State%TimeSteps%R(nrange)%start_index
+                do nrange = Statein%TimeSteps%Count,1,-1
+                    nbot = Statein%TimeSteps%R(nrange)%start_index
                     if (nnow >  nbot) then
-                        call DoRangeInt(IV,chi,ChiDissipative,nnow,nbot,State%TimeSteps%R(nrange)%delta, &
+                        call DoRangeInt(IV,chi,ChiDissipative,nnow,nbot,Statein%TimeSteps%R(nrange)%delta, &
                             nu,l,y1,y2,out_arr)
                         sums=sums+out_arr
                         if (chi==0) exit !small for remaining region
@@ -1758,12 +1768,12 @@
         end if !DoInt
         if (ThisSources%SourceNum==3 .and. (.not. DoInt .or. UseLimber(l))) then
             !Limber approximation for small scale lensing (better than poor version of above integral)
-            xf = State%tau0-State%invsinfunc((l+0.5_dl)/nu)*State%curvature_radius
-            if (xf < State%TimeSteps%Highest .and. xf > State%TimeSteps%Lowest) then
-                nbot=State%TimeSteps%IndexOf(xf)
-                xf= (xf-State%TimeSteps%points(nbot))/(State%TimeSteps%points(nbot+1)-State%TimeSteps%points(nbot))
+            xf = Statein%tau0-Statein%invsinfunc((l+0.5_dl)/nu)*Statein%curvature_radius
+            if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
+                nbot=Statein%TimeSteps%IndexOf(xf)
+                xf= (xf-Statein%TimeSteps%points(nbot))/(Statein%TimeSteps%points(nbot+1)-Statein%TimeSteps%points(nbot))
                 sums(3) = (IV%Source_q(nbot,3)*(1-xf) + xf*IV%Source_q(nbot+1,3))*&
-                    sqrt(const_pi/2/(l+0.5_dl)/sqrt(1-State%Ksign*real(l**2)/nu**2))/IV%q
+                    sqrt(const_pi/2/(l+0.5_dl)/sqrt(1-Statein%Ksign*real(l**2)/nu**2))/IV%q
             else
                 sums(3) = 0
             end if
@@ -1773,24 +1783,24 @@
 
     end if !Do Scalars
 
-    if ((CP%WantTensors)) then !Do Tensors
+    if ((CPin%WantTensors)) then !Do Tensors
         chi=ChiStart
 
         !Integrate chi down in dissipative region
         !DoRangeInt cuts off when ujl gets small
         miny1= 1.d-6/l/BessIntBoost
-        if ((nstart < State%TimeSteps%npoints-1).and.(y1dis>miny1)) then
+        if ((nstart < Statein%TimeSteps%npoints-1).and.(y1dis>miny1)) then
             y1=y1dis
             y2=y2dis
             nnow=nstart
-            do nrange = 1,State%TimeSteps%Count
-                if (nrange == State%TimeSteps%count) then
-                    ntop = State%TimeSteps%npoints -1
+            do nrange = 1,Statein%TimeSteps%Count
+                if (nrange == Statein%TimeSteps%count) then
+                    ntop = Statein%TimeSteps%npoints -1
                 else
-                    ntop = State%TimeSteps%R(nrange+1)%start_index
+                    ntop = Statein%TimeSteps%R(nrange+1)%start_index
                 end if
                 if (nnow < ntop) then
-                    call DoRangeIntTensor(IV,chi,ChiDissipative,nnow,ntop,State%TimeSteps%R(nrange)%delta, &
+                    call DoRangeIntTensor(IV,chi,ChiDissipative,nnow,ntop,Statein%TimeSteps%R(nrange)%delta, &
                         nu,l,y1,y2,out_arr)
 
                     ThisCT%Delta_p_l_k(:,j,IV%q_ix) = ThisCT%Delta_p_l_k(:,j,IV%q_ix) + out_arr
@@ -1809,10 +1819,10 @@
             chi=ChiStart
 
             nnow=nstart
-            do nrange = State%TimeSteps%Count,1,-1
-                nbot = State%TimeSteps%R(nrange)%start_index
+            do nrange = Statein%TimeSteps%Count,1,-1
+                nbot = Statein%TimeSteps%R(nrange)%start_index
                 if (nnow >  nbot) then
-                    call DoRangeIntTensor(IV,chi,ChiDissipative,nnow,nbot,State%TimeSteps%R(nrange)%delta, &
+                    call DoRangeIntTensor(IV,chi,ChiDissipative,nnow,nbot,Statein%TimeSteps%R(nrange)%delta, &
                         nu,l,y1,y2,out_arr)
                     ThisCT%Delta_p_l_k(:,j,IV%q_ix) = ThisCT%Delta_p_l_k(:,j,IV%q_ix) + out_arr
 
@@ -1825,7 +1835,7 @@
     end if !Do Tensors
 
     end subroutine IntegrateSourcesBessels
-
+!OPENACC
 
 
     subroutine DoRangeInt(IV,chi,chiDisp,nstart,nend,dtau,nu,l,y1,y2,out)
