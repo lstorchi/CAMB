@@ -273,10 +273,12 @@
 ! OPEANACC
 #ifdef USEACC
         write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc  parallel loop copyin(State, CP, ThisSources, ScaledSrc, ddScaledSrc) copy(ThisCT) private(q_ix)
+        !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, ddScaledSrc, max_etak_tensor, WantLateTime, State, CP, ThisSources, max_etak_scalar, full_bessel_integration, do_bispectrum, max_bessels_l_index)
 #endif        
         do q_ix=1,ThisCT%q%npoints
-            call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP, ScaledSrc, ddScaledSrc)
+            call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP, ScaledSrc, ddScaledSrc, &
+              max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
+              full_bessel_integration, do_bispectrum, max_bessels_l_index)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel
@@ -535,29 +537,35 @@
 
 ! OPEANACC
     subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin, ScaledSrcin, &
-        ddScaledSrcin)
+        ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
     type(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
-    integer q_ix
+    integer q_ix, max_bessels_l_indexin
     Type(CAMBParams) :: CPin
     type(IntegrationVars) :: IV
     real(dl), dimension(:,:,:) ::  ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
+    real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
+    logical :: WantLateTimein
+    logical :: full_bessel_integrationin, do_bispectrumin
 
-!    maybe need dto move outside 
+!   I need to move it outside 
     allocate(IV%Source_q(Statein%TimeSteps%npoints,ThisSourcesin%SourceNum))
     if (.not.Statein%flat) allocate(IV%ddSource_q(Statein%TimeSteps%npoints,ThisSources%SourceNum))
 
-    call IntegrationVars_init(IV)
+    call IntegrationVars_Init(IV, Statein)
 
     IV%q_ix = q_ix
     IV%q =ThisCT%q%points(q_ix)
     IV%dq= ThisCT%q%dpoints(q_ix)
 
-    call InterpolateSources(IV, ThisSourcesin, CPin, Statein, ScaledSrcin, ddScaledSrcin)
+    call InterpolateSources(IV, ThisSourcesin, CPin, Statein, ScaledSrcin, ddScaledSrcin, &
+      max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin)
 
-    call DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin)
+    call DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin, &
+      full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
 
     if (.not.Statein%flat) deallocate(IV%ddSource_q)
     deallocate(IV%Source_q)
@@ -1334,7 +1342,8 @@
 
 ! OPENACC
     subroutine InterpolateSources(IV, ThisSourcesin, CPin, Statein, ScaledSrcin, &
-        ddScaledSrcin)
+        ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, &
+        max_etak_scalarin)
     implicit none
     integer i,khi,klo, step
     real(dl) xf,b0,ho,a0,ho2o6,a03,b03
@@ -1344,6 +1353,8 @@
     type(CAMBdata) :: Statein
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
+    real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
+    logical :: WantLateTimein
 
     !     finding position of k in table Evolve_q to do the interpolation.
 
@@ -1372,17 +1383,17 @@
     do i=2, Statein%TimeSteps%npoints
         xf=IV%q*(Statein%tau0-Statein%TimeSteps%points(i))
         if (CPin%WantTensors) then
-            if (IV%q*Statein%TimeSteps%points(i) < max_etak_tensor.and. xf > 1.e-8_dl) then
+            if (IV%q*Statein%TimeSteps%points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) =a0*scaledSrc(klo,:,i)+&
-                    b0*scaledSrc(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
+                IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
+                    b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
                 IV%Source_q(i,:) = 0
             end if
         end if
         if (CPin%WantVectors) then
-            if (IV%q*Statein%TimeSteps%points(i) < max_etak_vector.and. xf > 1.e-8_dl) then
+            if (IV%q*Statein%TimeSteps%points(i) < max_etak_vectorin.and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i) + b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
@@ -1392,7 +1403,7 @@
         end if
 
         if (CPin%WantScalars) then
-            if ((DebugEvolution .or. WantLateTime .or. IV%q*Statein%TimeSteps%points(i) < max_etak_scalar) &
+            if ((DebugEvolution .or. WantLateTimein .or. IV%q*Statein%TimeSteps%points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
@@ -1405,34 +1416,35 @@
     IV%SourceSteps = step
 
     if (.not.Statein%flat) then
-        do i=1, ThisSources%SourceNum
+        do i=1, ThisSourcesin%SourceNum
             call spline_def(Statein%TimeSteps%points,IV%Source_q(:,i),Statein%TimeSteps%npoints,&
                 IV%ddSource_q(:,i))
         end do
     end if
 
     end subroutine InterpolateSources
-! OPENACC
 
-    subroutine IntegrationVars_Init(IV)
+    subroutine IntegrationVars_Init(IV, Statein)
     type(IntegrationVars), intent(INOUT) :: IV
+    type(CAMBdata) :: Statein
 
     IV%Source_q(1,:)=0
-    IV%Source_q(State%TimeSteps%npoints,:) = 0
-    IV%Source_q(State%TimeSteps%npoints-1,:) = 0
+    IV%Source_q(Statein%TimeSteps%npoints,:) = 0
+    IV%Source_q(Statein%TimeSteps%npoints-1,:) = 0
 
     end  subroutine IntegrationVars_Init
 
-! OPENACC
-    subroutine DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin) !for particular wave number q
+    subroutine DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin, &
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin) !for particular wave number q
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
-    integer j,ll,llmax
+    integer j,ll,llmax, max_bessels_l_indexin 
     real(dl) nu
     real(dl) :: sixpibynu
     type(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
+    logical :: full_bessel_integrationin, do_bispectrumin
 
     nu=IV%q*Statein%curvature_radius
     sixpibynu  = 6._dl*const_pi/nu
@@ -1454,7 +1466,8 @@
     end if
 
     if (Statein%flat) then
-        call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin, ThisSourcesin)
+        call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin, ThisSourcesin, &
+          full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
     else
         print * , "not yet fully ported"
         stop
@@ -1466,30 +1479,30 @@
     end if
 
     end subroutine DoSourceIntegration
-! OPENACC
 
-    function UseLimber(l)
+    function UseLimber(l, CPin)
     !Calculate lensing potential power using Limber rather than j_l integration
     !even when sources calculated as part of temperature calculation
     !(Limber better on small scales unless step sizes made much smaller)
     !This affects speed, esp. of non-flat case
     logical :: UseLimber
     integer l
+    Type(CAMBParams) :: CPin
 
     !note increasing non-limber is not neccessarily more accurate unless AccuracyBoost much higher
     !use **0.5 to at least give some sensitivity to Limber effects
     !Could be lower but care with phi-T correlation at lower L
-    if (CP%SourceTerms%limber_windows) then
-        UseLimber = l >= CP%SourceTerms%limber_phi_lmin
+    if (CPin%SourceTerms%limber_windows) then
+        UseLimber = l >= CPin%SourceTerms%limber_phi_lmin
     else
-        UseLimber = l > 400 * (CP%Accuracy%AccuracyBoost * CP%Accuracy%LimberBoost)** 0.5
+        UseLimber = l > 400 * (CPin%Accuracy%AccuracyBoost * CPin%Accuracy%LimberBoost)** 0.5
     end if
 
     end function UseLimber
 
-!OPENACC
     !flat source integration
-    subroutine DoFlatIntegration(IV, ThisCT, llmax, Statein, CPin, ThisSourcesin)
+    subroutine DoFlatIntegration(IV, ThisCT, llmax, Statein, CPin, ThisSourcesin, &
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
     implicit none
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1504,10 +1517,11 @@
     real(dl) qmax_int
     integer bes_ix,n, bes_index(IV%SourceSteps)
     integer custom_source_off, s_ix
-    integer nwin
+    integer nwin, max_bessels_l_indexin
     real(dl) :: BessIntBoost
     type(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
+    logical :: full_bessel_integrationin, do_bispectrumin
 
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
     custom_source_off = Statein%num_redshiftwindows + Statein%num_extra_redshiftwindows + 4
@@ -1525,12 +1539,12 @@
         fac(j)=fac(j)**2*aa(j)/6
     end do
 
-    do j=1,max_bessels_l_index
+    do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
         xlim=xlimfrac*ThisCT%ls%l(j)
         xlim=max(xlim,xlimmin)
         xlim=ThisCT%ls%l(j)-xlim
-        if (full_bessel_integration .or. do_bispectrum) then
+        if (full_bessel_integrationin .or. do_bispectrumin) then
             tmin = Statein%TimeSteps%points(2)
         else
             xlmax1=80*ThisCT%ls%l(j)*BessIntBoost
@@ -1640,7 +1654,7 @@
                     end if
                 end if
             end if
-            if (.not. DoInt .or. UseLimber(ThisCT%ls%l(j)) .and. CPin%WantScalars) then
+            if (.not. DoInt .or. UseLimber(ThisCT%ls%l(j), CPin) .and. CPin%WantScalars) then
                 !Limber approximation for small scale lensing (better than poor version of above integral)
                 xf = Statein%tau0-(ThisCT%ls%l(j)+0.5_dl)/IV%q
                 if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
@@ -1680,8 +1694,6 @@
     end do
 
     end subroutine DoFlatIntegration
-
-
 
     !non-flat source integration
 
@@ -1777,7 +1789,7 @@
                 end do
             end if
         end if !DoInt
-        if (ThisSourcesin%SourceNum==3 .and. (.not. DoInt .or. UseLimber(l))) then
+        if (ThisSourcesin%SourceNum==3 .and. (.not. DoInt .or. UseLimber(l, CPin))) then
             !Limber approximation for small scale lensing (better than poor version of above integral)
             xf = Statein%tau0-Statein%invsinfunc((l+0.5_dl)/nu)*Statein%curvature_radius
             if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
@@ -1901,7 +1913,8 @@
     if (scalel<1500 .and. scalel > 150) &
         IntAccuracyBoost=IntAccuracyBoost*(1+(2000-scalel)*0.6/2000 )
 
-    if (num2*IntAccuracyBoost < dchisource .and. (.not. WantLateTime .or. UseLimber(l)) &
+! OPENACC need to transfer to here the CPin
+    if (num2*IntAccuracyBoost < dchisource .and. (.not. WantLateTime .or. UseLimber(l, CP)) &
         .or. (nstart>IV%SourceSteps.and.nend>IV%SourceSteps)) then
         out = 0
         y1=0._dl !So we know to calculate starting y1,y2 if there is next range
