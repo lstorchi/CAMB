@@ -1,6 +1,7 @@
 #CAMB Makefile
 NVCOMP=yes
-OPENACC=yes
+OPENACC=no
+ACTIVEDEBUGFLAGS=no
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
@@ -95,7 +96,11 @@ else
     else
       COMMON_FFLAGS = -cpp -Mextend -Minform=warn -Mextend
     endif
-    FFLAGS = -O0 -g $(COMMON_FFLAGS)
+    ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
+      FFLAGS = -O0 -g $(COMMON_FFLAGS)
+    else
+      FFLAGS = -O3 $(COMMON_FFLAGS)
+    endif
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
     ifeq "$(gfortErr)" "0"
@@ -107,8 +112,11 @@ else
       #COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
       COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 
       # Using -ffast-math causes differences between Debug and Release configurations.
-      #FFLAGS = -O3 $(COMMON_FFLAGS)
-      FFLAGS = -O0 -g $(COMMON_FFLAGS)
+      ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
+        FFLAGS = -O0 -g $(COMMON_FFLAGS)
+      else
+        FFLAGS = -O3 $(COMMON_FFLAGS)
+      endif
       DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
       ifeq ($(shell uname -s),Darwin)
         SFFLAGS = -dynamiclib #-fpic
