@@ -1146,12 +1146,15 @@
         error stop
     end if
 
+    print *, "Start reading " , InputFile
+
     highL_unlensed_cl_template = Ini%Read_String_Default( &
         'highL_unlensed_cl_template', highL_unlensed_cl_template)
     call Ini%Read('number_of_threads', ThreadNum)
     call Ini%Read('DebugParam', DebugParam)
     call Ini%Read('feedback_level', FeedbackLevel)
     if (Ini%HasKey('DebugMsgs')) call Ini%Read('DebugMsgs', DebugMsgs)
+
 
     Ini%Fail_on_not_found = .false.
     print *, 'Running CAMB with parameters from ', InputFile
