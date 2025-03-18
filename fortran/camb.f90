@@ -737,9 +737,9 @@
     DarkEneryModel = UpperCase(Ini%Read_String_Default('dark_energy_model', 'fluid'))
     
     print * , 'Checking for Dark energy model = ', DarkEneryModel
-    print *, "   setting to defauklt need to FIX it"
+    !print *, "   setting to defauklt need to FIX it"
     !write (*, '(""", A, """")') DarkEneryModel
-    DarkEneryModel = 'FLUID'
+    !DarkEneryModel = 'FLUID'
     if (allocated(P%DarkEnergy)) deallocate(P%DarkEnergy)
     if (DarkEneryModel == 'FLUID') then
         allocate (TDarkEnergyFluid::P%DarkEnergy)
@@ -861,9 +861,9 @@
     RecombinationModel = UpperCase(Ini%Read_String_Default('recombination_model', 'Recfast'))
     ! NVCC to fix
     print *, "Checking Recombination Model = ", RecombinationModel
-    print *, "   setting to defauklt need to FIX it"
+    !print *, "   setting to defauklt need to FIX it"
     !write (*, '("\"", A, "\"")') RecombinationModel
-    RecombinationModel = 'RECFAST'
+    !RecombinationModel = 'RECFAST'
     if (RecombinationModel == 'COSMOREC') then
 #ifdef COSMOREC
         deallocate(P%Recomb)
