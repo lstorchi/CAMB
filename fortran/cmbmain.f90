@@ -1454,7 +1454,11 @@
         if (nu<20 .or. Statein%tau0/Statein%curvature_radius+sixpibynu > const_pi/2) then
             llmax=nint(nu)-1
         else
-            llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
+            ! beeing if flat shoud be chi itslef
+            !print *, "no Chi :", Statein%tau0/Statein%curvature_radius + sixpibynu
+            !print *, "   Chi :", Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu)
+            !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
+            llmax=nint(nu*(Statein%tau0/Statein%curvature_radius + sixpibynu))
             llmax=min(llmax,nint(nu)-1)  !nu >= l+1
         end if
     else
@@ -1462,7 +1466,10 @@
         if (llmax<15) then
             llmax=17 !AL Sept2010 changed from 15 to get l=16 smooth
         else
-            llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
+            !print *, "no Chi: ", Statein%tau0/Statein%curvature_radius + sixpibynu
+            !print *, "   Chi: ", Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu)
+            !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
+            llmax=nint(nu*(Statein%tau0/Statein%curvature_radius + sixpibynu))
         end if
     end if
 
