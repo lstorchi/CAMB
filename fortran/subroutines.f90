@@ -7,13 +7,55 @@
     contains
     
     subroutine spline_def(x,y,n,d2)
+#ifdef USEACC
+    !$acc routine seq
+#endif
     !Low-level initialize spline arrays with default boundary conditions 
     integer, intent(in) :: n
     real(sp_acc), intent(in) :: x(n), y(n)
     real(sp_acc), intent(out) :: d2(n)
-    
-    call spline(x,y,n,SPLINE_DANGLE,SPLINE_DANGLE,d2)
-    
+    real(sp_acc) ::  d11, d1n
+    real(sp_acc) xp,qn,sig,un,xxdiv,u(n-1),d1l,d1r
+    real(sp_acc), parameter :: LOCALSPLINE_DANGLE=1.e30_sp_acc
+    integer i
+
+    d11 = LOCALSPLINE_DANGLE 
+    d1n = LOCALSPLINE_DANGLE
+
+    d1r= (y(2)-y(1))/(x(2)-x(1))
+    if (d11==SPLINE_DANGLE) then
+        d2(1)=0._sp_acc
+        u(1)=0._sp_acc
+    else
+        d2(1)=-0.5_sp_acc
+        u(1)=(3._sp_acc/(x(2)-x(1)))*(d1r-d11)
+    endif
+
+    do i=2,n-1
+        d1l=d1r
+        d1r=(y(i+1)-y(i))/(x(i+1)-x(i))
+        xxdiv=1._sp_acc/(x(i+1)-x(i-1))
+        sig=(x(i)-x(i-1))*xxdiv
+        xp=1._sp_acc/(sig*d2(i-1)+2._sp_acc)
+
+        d2(i)=(sig-1._sp_acc)*xp
+
+        u(i)=(6._sp_acc*(d1r-d1l)*xxdiv-sig*u(i-1))*xp
+    end do
+    d1l=d1r
+
+    if (d1n==LOCALSPLINE_DANGLE) then
+        qn=0._sp_acc
+        un=0._sp_acc
+    else
+        qn=0.5_sp_acc
+        un=(3._sp_acc/(x(n)-x(n-1)))*(d1n-d1l)
+    endif
+
+    d2(n)=(un-qn*u(n-1))/(qn*d2(n-1)+1._sp_acc)
+    do i=n-1,1,-1
+        d2(i)=d2(i)*d2(i+1)+u(i)
+    end do
     end subroutine spline_def
 
     subroutine splder(y,dy,n, g)

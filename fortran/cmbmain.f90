@@ -235,6 +235,7 @@
     Type(TTimer) :: Timer
     integer :: start_count, end_count, count_rate
     real :: elapsed_time
+    type(IntegrationVars) :: IV
 
     if (CP%WantScalars) ThisSources => State%ScalarTimeSources
 
@@ -268,26 +269,32 @@
         if (DebugMsgs .and. Feedbacklevel > 0) call WriteFormat('Set %d integration k values',ThisCT%q%npoints)
 
         !Begin k-loop and integrate Sources*Bessels over time
-        !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
         call system_clock(start_count, count_rate)
 ! OPEANACC
+        allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+        if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
 #ifdef USEACC
         write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, ddScaledSrc, max_etak_tensor, WantLateTime, State, CP, ThisSources, max_etak_scalar, full_bessel_integration, do_bispectrum, max_bessels_l_index)
+        !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, ddScaledSrc, max_etak_tensor, WantLateTime, State, CP, ThisSources, max_etak_scalar, full_bessel_integration, do_bispectrum, max_bessels_l_index,IV)
+#else
+        !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
+            ! do not think so but maybe I will need to zerpos the allocated arrays
             call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integration, do_bispectrum, max_bessels_l_index)
+              full_bessel_integration, do_bispectrum, max_bessels_l_index,IV)
         end do !q loop
 #ifdef USEACC
-        !$acc end parallel
-#endif
-! OPEANACC
+        !$acc end parallel loop
+#else
         !$OMP END PARALLEL DO
+#endif
+        if (.not.State%flat) deallocate(IV%ddSource_q)
+        deallocate(IV%Source_q)
+! OPEANACC
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
-
         write(*,*) 'Time taken for main task:', elapsed_time
 
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
@@ -538,7 +545,7 @@
 ! OPEANACC
     subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin, ScaledSrcin, &
         ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, IV)
     type(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
@@ -552,9 +559,6 @@
     logical :: full_bessel_integrationin, do_bispectrumin
 
 !   I need to move it outside 
-    allocate(IV%Source_q(Statein%TimeSteps%npoints,ThisSourcesin%SourceNum))
-    if (.not.Statein%flat) allocate(IV%ddSource_q(Statein%TimeSteps%npoints,ThisSources%SourceNum))
-
     call IntegrationVars_Init(IV, Statein)
 
     IV%q_ix = q_ix
@@ -567,10 +571,7 @@
     call DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin, &
       full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
 
-    if (.not.Statein%flat) deallocate(IV%ddSource_q)
-    deallocate(IV%Source_q)
-    
-!    maybe need dto move outsid
+!   maybe need dto move outsid
 
     end subroutine SourceToTransfers
 ! OPEANACC
