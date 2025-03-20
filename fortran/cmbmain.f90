@@ -271,11 +271,17 @@
         !Begin k-loop and integrate Sources*Bessels over time
         call system_clock(start_count, count_rate)
 ! OPEANACC
+        ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
 #ifdef USEACC
+        ! TODO: has they catains also function I guess I need to copy explicitly 
+        ! all the data of State and BessRanges
         write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, ddScaledSrc, max_etak_tensor, WantLateTime, State, CP, ThisSources, max_etak_scalar, full_bessel_integration, do_bispectrum, max_bessels_l_index,IV)
+        !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, & 
+        !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, State, CP, & 
+        !$acc   ThisSources, max_etak_scalar, full_bessel_integration, &
+        !$acc   do_bispectrum, max_bessels_l_index, IV, BessRanges)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -283,7 +289,8 @@
             ! do not think so but maybe I will need to zerpos the allocated arrays
             call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integration, do_bispectrum, max_bessels_l_index,IV)
+              full_bessel_integration, do_bispectrum, max_bessels_l_index,IV, &
+              BessRanges)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel loop
@@ -486,16 +493,16 @@
                 n1 = State%TimeSteps%IndexOf(State%tau_maxvis)
                 n2 = State%TimeSteps%npoints - 1
             else
-                n1 = State%TimeSteps%IndexOf(W%tau_start)
-                if (W%kind == window_lensing .or. W%kind == window_counts &
-                    .and. CP%SourceTerms%counts_lensing) then
-                    n2 = State%TimeSteps%npoints - 1
-                else
-                    n2 = min(State%TimeSteps%npoints - 1, State%TimeSteps%IndexOf(W%tau_end))
-                end if
-                if (W%kind == window_counts .and. CP%SourceTerms%counts_lensing) then
-                    s_ix_lens = 3 + W%mag_index + State%num_redshiftwindows
-                end if
+               n1 = State%TimeSteps%IndexOf(W%tau_start)
+               if (W%kind == window_lensing .or. W%kind == window_counts &
+                   .and. CP%SourceTerms%counts_lensing) then
+                   n2 = State%TimeSteps%npoints - 1
+               else
+                   n2 = min(State%TimeSteps%npoints - 1, State%TimeSteps%IndexOf(W%tau_end))
+               end if
+               if (W%kind == window_counts .and. CP%SourceTerms%counts_lensing) then
+                   s_ix_lens = 3 + W%mag_index + State%num_redshiftwindows
+               end if
             end if
 
             do ell = ThisCT%limber_l_min(s_ix), ThisCT%ls%nl
@@ -545,7 +552,7 @@
 ! OPEANACC
     subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin, ScaledSrcin, &
         ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, IV)
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, IV, BessRangesiin)
     type(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
@@ -557,6 +564,7 @@
     real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
     logical :: WantLateTimein
     logical :: full_bessel_integrationin, do_bispectrumin
+    type(TRanges) :: BessRangesiin
 
 !   I need to move it outside 
     call IntegrationVars_Init(IV, Statein)
@@ -569,7 +577,8 @@
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin)
 
     call DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin, &
-      full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
+            full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+            BessRangesiin)
 
 !   maybe need dto move outsid
 
@@ -1436,7 +1445,8 @@
     end  subroutine IntegrationVars_Init
 
     subroutine DoSourceIntegration(IV, ThisCT, Statein, CPin, ThisSourcesin, &
-        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin) !for particular wave number q
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+        BessRangesiin) !for particular wave number q
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
     integer j,ll,llmax, max_bessels_l_indexin 
@@ -1446,6 +1456,7 @@
     Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
     logical :: full_bessel_integrationin, do_bispectrumin
+    type(TRanges) :: BessRangesiin  
 
     nu=IV%q*Statein%curvature_radius
     sixpibynu  = 6._dl*const_pi/nu
@@ -1475,7 +1486,8 @@
 
     if (Statein%flat) then
         call DoFlatIntegration(IV,ThisCT, llmax,Statein, CPin, ThisSourcesin, &
-          full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
+          full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+          BessRangesiin)
     else
         print * , "not yet fully ported"
         stop
@@ -1510,7 +1522,11 @@
 
     !flat source integration
     subroutine DoFlatIntegration(IV, ThisCT, llmax, Statein, CPin, ThisSourcesin, &
-        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin)
+        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+        BessRangesin)
+#ifdef USEACC
+    !$ACC ROUTINE
+#endif
     implicit none
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1530,6 +1546,7 @@
     type(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
     logical :: full_bessel_integrationin, do_bispectrumin
+    type(TRanges) :: BessRangesin
 
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
     custom_source_off = Statein%num_redshiftwindows + Statein%num_extra_redshiftwindows + 4
@@ -1539,11 +1556,15 @@
 
     do j=1,IV%SourceSteps !Precompute arrays for this k
         xf=abs(IV%q*(Statein%tau0-Statein%TimeSteps%points(j)))
-        bes_index(j)=BessRanges%IndexOf(xf)
-        !Precomputed values for the interpolation
+#ifdef USEACC
+        ! FIXIT CUDA
+#else
+        bes_index(j)=BessRangesin%IndexOf(xf)
+        ! Precomputed values for the interpolation
+#endif
         bes_ix= bes_index(j)
-        fac(j)=BessRanges%points(bes_ix+1)-BessRanges%points(bes_ix)
-        aa(j)=(BessRanges%points(bes_ix+1)-xf)/fac(j)
+        fac(j)=BessRangesin%points(bes_ix+1)-BessRangesin%points(bes_ix)
+        aa(j)=(BessRangesin%points(bes_ix+1)-xf)/fac(j)
         fac(j)=fac(j)**2*aa(j)/6
     end do
 
@@ -1577,6 +1598,9 @@
 
         if (ThisSourcesin%SourceNum==2) then
             !This is the innermost loop, so we separate the no lensing scalar case to optimize it
+#ifdef USEACC
+            ! FIXIT CUDA
+#else
             do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
                 a2=aa(n)
                 bes_ix=bes_index(n)
@@ -1588,6 +1612,7 @@
                 sums(1) = sums(1) + IV%Source_q(n,1)*J_l
                 sums(2) = sums(2) + IV%Source_q(n,2)*J_l
             end do
+#endif
         else
             qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/Statein%tau0*1.2
             DoInt = .not. CPin%WantScalars .or. IV%q < qmax_int
@@ -1595,70 +1620,86 @@
 
             if (DoInt) then
                 if (CPin%CustomSources%num_custom_sources==0 .and. Statein%num_redshiftwindows==0) then
-                    do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
-                        !Full Bessel integration
-                        a2=aa(n)
-                        bes_ix=bes_index(n)
+#ifdef USEACC
+                   ! FIXIT CUDA
+#else
+                   do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
+                       !Full Bessel integration
+                       a2=aa(n)
+                       bes_ix=bes_index(n)
 
-                        J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                            *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
-                        J_l = J_l*Statein%TimeSteps%dpoints(n)
+                       J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
+                           *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                       J_l = J_l*Statein%TimeSteps%dpoints(n)
 
-                        !The unwrapped form is faster
-                        sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                        sums(2) = sums(2) + IV%Source_q(n,2)*J_l
-                        sums(3) = sums(3) + IV%Source_q(n,3)*J_l
-                    end do
+                       !The unwrapped form is faster
+                       sums(1) = sums(1) + IV%Source_q(n,1)*J_l
+                       sums(2) = sums(2) + IV%Source_q(n,2)*J_l
+                       sums(3) = sums(3) + IV%Source_q(n,3)*J_l
+                   end do
+#endif
                 else
                     if (Statein%num_redshiftwindows>0) then
+#ifdef USEACC
+                        ! FIXIT CUDA
+#else
                         nwin = Statein%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows)
+#endif
                     else
                         nwin = Statein%TimeSteps%npoints+1
                     end if
                     if (CPin%CustomSources%num_custom_sources==0) then
-                        do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
-                            !Full Bessel integration
-                            a2=aa(n)
-                            bes_ix=bes_index(n)
+#ifdef USEACC
+                       ! FIXIT CUDA
+#else
+                       do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
+                           !Full Bessel integration
+                           a2=aa(n)
+                           bes_ix=bes_index(n)
 
-                            J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                                *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
-                            J_l = J_l*Statein%TimeSteps%dpoints(n)
+                           J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
+                               *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                           J_l = J_l*Statein%TimeSteps%dpoints(n)
 
-                            !The unwrapped form is faster
-                            sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                            sums(2) = sums(2) + IV%Source_q(n,2)*J_l
-                            sums(3) = sums(3) + IV%Source_q(n,3)*J_l
-                            if (n >= nwin) then
-                                do s_ix = 4, ThisSourcesin%SourceNum
-                                    sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
-                                end do
-                            end if
-                        end do
+                           !The unwrapped form is faster
+                           sums(1) = sums(1) + IV%Source_q(n,1)*J_l
+                           sums(2) = sums(2) + IV%Source_q(n,2)*J_l
+                           sums(3) = sums(3) + IV%Source_q(n,3)*J_l
+                           if (n >= nwin) then
+                               do s_ix = 4, ThisSourcesin%SourceNum
+                                   sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
+                               end do
+                           end if
+                       end do
+#endif
                     else
-                        do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
-                            !Full Bessel integration
-                            a2=aa(n)
-                            bes_ix=bes_index(n)
+#ifdef USEACC
+                       ! FIXIT CUDA
+#else
+                       do n= Statein%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
+                           !Full Bessel integration
+                           a2=aa(n)
+                           bes_ix=bes_index(n)
 
-                            J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                                *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
-                            J_l = J_l*Statein%TimeSteps%dpoints(n)
+                           J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
+                               *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                           J_l = J_l*Statein%TimeSteps%dpoints(n)
 
-                            !The unwrapped form is faster
-                            sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                            sums(2) = sums(2) + IV%Source_q(n,2)*J_l
-                            sums(3) = sums(3) + IV%Source_q(n,3)*J_l
-                            sums(custom_source_off) = sums(custom_source_off) +  IV%Source_q(n,custom_source_off)*J_l
-                            if (n >= nwin) then
-                                do s_ix = 4, ThisSourcesin%NonCustomSourceNum
-                                    sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
-                                end do
-                            end if
-                            do s_ix = custom_source_off+1, custom_source_off+CPin%CustomSources%num_custom_sources -1
-                                sums(s_ix) = sums(s_ix)  + IV%Source_q(n,s_ix)*J_l
-                            end do
-                        end do
+                           !The unwrapped form is faster
+                           sums(1) = sums(1) + IV%Source_q(n,1)*J_l
+                           sums(2) = sums(2) + IV%Source_q(n,2)*J_l
+                           sums(3) = sums(3) + IV%Source_q(n,3)*J_l
+                           sums(custom_source_off) = sums(custom_source_off) +  IV%Source_q(n,custom_source_off)*J_l
+                           if (n >= nwin) then
+                               do s_ix = 4, ThisSourcesin%NonCustomSourceNum
+                                   sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
+                               end do
+                           end if
+                           do s_ix = custom_source_off+1, custom_source_off+CPin%CustomSources%num_custom_sources -1
+                               sums(s_ix) = sums(s_ix)  + IV%Source_q(n,s_ix)*J_l
+                           end do
+                       end do
+#endif
                     end if
                 end if
             end if
@@ -1666,7 +1707,11 @@
                 !Limber approximation for small scale lensing (better than poor version of above integral)
                 xf = Statein%tau0-(ThisCT%ls%l(j)+0.5_dl)/IV%q
                 if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
+#ifdef USEACC
+                    ! FIXIT CUDA
+#else
                     n=Statein%TimeSteps%IndexOf(xf)
+#endif
                     xf= (xf-Statein%TimeSteps%points(n))/(Statein%TimeSteps%points(n+1)-Statein%TimeSteps%points(n))
                     sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
                         sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/IV%q
@@ -1678,6 +1723,9 @@
                 if (any(ThisCT%limber_l_min(4:ThisSourcesin%NonCustomSourceNum)==0 .or. &
                     ThisCT%limber_l_min(4:ThisSourcesin%NonCustomSourceNum) > j)) then
                     !When CMB does not need integral but other sources do
+#ifdef USEACC
+                    ! FIXIT CUDA
+#else
                     do n= Statein%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows), &
                         min(IV%SourceSteps, Statein%TimeSteps%IndexOf(tmax))
                         !Full Bessel integration
@@ -1694,6 +1742,7 @@
                             sums(s_ix) = sums(s_ix) + IV%Source_q(n, s_ix) * J_l
                         end do
                     end do
+#endif
                 end if
             end if
         end if
@@ -1735,7 +1784,11 @@
     if (tDissipative<Statein%TimeSteps%points(1)) then
         nDissipative=2
     else
-        nDissipative = Statein%TimeSteps%IndexOf(tDissipative)+1
+#ifdef USEACC
+       ! FIXIT CUDA 
+#else
+       nDissipative = Statein%TimeSteps%IndexOf(tDissipative)+1
+#endif    
     endif
     nDissipative=min(nDissipative,Statein%TimeSteps%npoints-1)
 
@@ -1801,7 +1854,11 @@
             !Limber approximation for small scale lensing (better than poor version of above integral)
             xf = Statein%tau0-Statein%invsinfunc((l+0.5_dl)/nu)*Statein%curvature_radius
             if (xf < Statein%TimeSteps%Highest .and. xf > Statein%TimeSteps%Lowest) then
+#ifdef USEACC
+                ! FIXIT CUDA
+#else
                 nbot=Statein%TimeSteps%IndexOf(xf)
+#endif
                 xf= (xf-Statein%TimeSteps%points(nbot))/(Statein%TimeSteps%points(nbot+1)-Statein%TimeSteps%points(nbot))
                 sums(3) = (IV%Source_q(nbot,3)*(1-xf) + xf*IV%Source_q(nbot+1,3))*&
                     sqrt(const_pi/2/(l+0.5_dl)/sqrt(1-Statein%Ksign*real(l**2)/nu**2))/IV%q
