@@ -553,7 +553,7 @@
     subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin, ScaledSrcin, &
         ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
         full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, IV, BessRangesiin)
-    type(CAMBdata) :: Statein
+    class(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer q_ix, max_bessels_l_indexin
@@ -807,8 +807,8 @@
 
 
     !  initial variables, number of steps, etc.
-    subroutine InitVars(state)
-    type(CAMBdata) :: state
+    subroutine InitVars(State)
+    class(CAMBdata) :: State
     real(dl) taumin, maxq, initAccuracyBoost
     integer itf
 
@@ -1360,7 +1360,7 @@
     type(IntegrationVars) IV
     Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
-    type(CAMBdata) :: Statein
+    class(CAMBdata) :: Statein
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
     real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
@@ -1436,7 +1436,7 @@
 
     subroutine IntegrationVars_Init(IV, Statein)
     type(IntegrationVars), intent(INOUT) :: IV
-    type(CAMBdata) :: Statein
+    class(CAMBdata) :: Statein
 
     IV%Source_q(1,:)=0
     IV%Source_q(Statein%TimeSteps%npoints,:) = 0
@@ -1452,7 +1452,7 @@
     integer j,ll,llmax, max_bessels_l_indexin 
     real(dl) nu
     real(dl) :: sixpibynu
-    type(CAMBdata) :: Statein
+    class(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
     logical :: full_bessel_integrationin, do_bispectrumin
@@ -1543,7 +1543,7 @@
     integer custom_source_off, s_ix
     integer nwin, max_bessels_l_indexin
     real(dl) :: BessIntBoost
-    type(CAMBdata) :: Statein
+    class(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
     logical :: full_bessel_integrationin, do_bispectrumin
     type(TRanges) :: BessRangesin
@@ -1765,7 +1765,7 @@
     real(dl) xf,x,chi, miny1
     real(dl) sums(ThisSourcesin%SourceNum),out_arr(ThisSourcesin%SourceNum), qmax_int
     real(dl) BessIntBoost
-    type(CAMBdata) :: Statein
+    class(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
 
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
