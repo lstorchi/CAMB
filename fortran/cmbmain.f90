@@ -275,8 +275,8 @@
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
 #ifdef USEACC
-        ! TODO: has they catains also function I guess I need to copy explicitly 
-        ! all the data of State and BessRanges
+        ! TODO: I need to copyin explicitly only the data then I need to implment 
+        ! the methods as standalone function 
         write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
         !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, State, CP, & 
