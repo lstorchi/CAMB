@@ -273,6 +273,7 @@
 ! OPEANACC
 
         ! transfor State and BessRanges into functions and data 
+        
 
 
         ! I should allocate this only in the GPU
