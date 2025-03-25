@@ -271,6 +271,10 @@
         !Begin k-loop and integrate Sources*Bessels over time
         call system_clock(start_count, count_rate)
 ! OPEANACC
+
+        ! transfor State and BessRanges into functions and data 
+
+
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
@@ -287,10 +291,10 @@
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
-            call SourceToTransfers(ThisCT, q_ix, State, ThisSources, CP, ScaledSrc, ddScaledSrc, &
+            call SourceToTransfers(State, BessRanges, &
+              ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integration, do_bispectrum, max_bessels_l_index,IV, &
-              BessRanges)
+              full_bessel_integration, do_bispectrum, max_bessels_l_index,IV)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel loop
@@ -550,9 +554,11 @@
     end subroutine GetLimberTransfers
 
 ! OPEANACC
-    subroutine SourceToTransfers(ThisCT, q_ix, Statein, ThisSourcesin, CPin, ScaledSrcin, &
-        ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, IV, BessRangesiin)
+    subroutine SourceToTransfers(Statein, BessRangesiin, &
+        ThisCT, q_ix,  ThisSourcesin, CPin, ScaledSrcin, &
+        ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
+        WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
+        do_bispectrumin, max_bessels_l_indexin, IV)
     class(CAMBdata) :: Statein
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
