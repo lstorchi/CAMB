@@ -273,8 +273,7 @@
 ! OPEANACC
 
         ! transfor State and BessRanges into functions and data 
-        
-
+        call transferdata(State, BessRanges)
 
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
