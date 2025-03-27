@@ -43,23 +43,46 @@ subroutine transferdata (statein, bessein, &
 
 end subroutine transferdata
 
-function statindexof ()
+function statindexof (tau)
 
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
+    ! to test it compare respect to State.IndexOf 
 
     integer :: statindexof
+    double precision, intent(in) :: tau
+    integer :: pointstep, i
     
-    statindexof = 0
+    pointstep=0
+    !do i=1, this%count
+    !    associate(AReg => this%R(i)) here I need to check  
+    !        if (tau < AReg%High .and. tau >= AReg%Low) then
+    !            if (AReg%IsLog) then
+    !                pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
+    !            else
+    !                pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
+    !            end if
+    !            return
+    !        end if
+    !    end associate
+    !end do
     
+    !if (tau >= this%Highest) then
+    !    pointstep = this%npoints
+    !else
+    !    print *, "tau=", tau, ",this%Highest=", this%Highest
+    !    call MpiStop('TRanges_IndexOf: value out of range')
+    !end if
+ 
     return
 
 end function statindexof
 
-function besseindexof ()
+function besseindexof (tau)
 
     !bessein%IndexOf  RangeUtils.f90 
 
     integer :: besseindexof
+    double precision, intent(in) :: tau
     
     besseindexof = 0
     
