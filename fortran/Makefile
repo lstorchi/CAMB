@@ -1,7 +1,7 @@
 #CAMB Makefile
 NVCOMP=yes
-OPENACC=yes
-ACTIVEDEBUGFLAGS=no
+OPENACC=no
+ACTIVEDEBUGFLAGS=yes
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code

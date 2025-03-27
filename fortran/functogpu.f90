@@ -1,43 +1,33 @@
-subroutine transferdata (statein, bessein)
+subroutine transferdata (statein, bessein, &
+    s_tau0, s_chi0, s_curvature_radius, s_tau_start_redshiftwindows, &
+    s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
+    s_npoints, s_lowest, s_highest)
 
     use results
 
-    class(CAMBdata) :: statein
-    class(TRanges) :: bessein
+    class(CAMBdata), intent(in) :: statein
+    class(TRanges), intent(in) :: bessein
 
-    real(dl) :: tau0, chi0, curvature_radius, tau_start_redshiftwindows
-    logical :: flat, closed
-    integer :: num_redshiftwindows, num_extra_redshiftwindows, &
-        npoints
-    double precision, dimension(:), allocatable :: points, dpoints
-    double precision, dimension(:), allocatable :: b_points
-    double precision :: lowest, highest
+    double precision, intent(inout) :: s_tau0, s_chi0, s_curvature_radius, &
+        s_tau_start_redshiftwindows
+    logical, intent(inout) :: s_flat, s_closed
+    integer, intent(inout) :: s_num_redshiftwindows, s_num_extra_redshiftwindows, &
+        s_npoints
+    double precision, intent(inout) :: s_lowest, s_highest
 
-    tau0 = statein%tau0
-    chi0 = statein%chi0
-    falt = statein%flat
-    closed = statein%closed
-    curvature_radius = statein%curvature_radius
-    num_redshiftwindows = statein%num_redshiftwindows
-    num_extra_redshiftwindows = statein%num_extra_redshiftwindows
-    npoints = statein%TimeSteps%npoints
-    lowest = statein%TimeSteps%Lowest
-    highest = statein%TimeSteps%Highest
-    tau_start_redshiftwindows = statein%ThermoData%tau_start_redshiftwindows
+    print *, "transferdata"
 
-    ! to copy the data 
-    if (allocated(statein%TimeSteps%points)) then
-        allocate(points( size(statein%TimeSteps%points) ))
-        points = statein%TimeSteps%points
-    end if
-    if (allocated(statein%TimeSteps%dpoints)) then
-        allocate(dpoints( size(statein%TimeSteps%dpoints) ))
-        dpoints = statein%TimeSteps%dpoints
-    end if
-    if (allocated(statein%TimeSteps%points)) then
-        allocate(b_points( size(statein%TimeSteps%points) ))
-        b_points = statein%TimeSteps%points
-    end if
+    s_tau0 = statein%tau0
+    s_chi0 = statein%chi0
+    s_falt = statein%flat
+    s_closed = statein%closed
+    s_curvature_radius = statein%curvature_radius
+    s_num_redshiftwindows = statein%num_redshiftwindows
+    s_num_extra_redshiftwindows = statein%num_extra_redshiftwindows
+    s_npoints = statein%TimeSteps%npoints
+    s_lowest = statein%TimeSteps%Lowest
+    s_highest = statein%TimeSteps%Highest
+    s_tau_start_redshiftwindows = statein%ThermoData%tau_start_redshiftwindows
 
     print *, "tau0 = ", tau0
     print *, "chi0 = ", chi0
@@ -50,7 +40,6 @@ subroutine transferdata (statein, bessein)
     print *, "lowest = ", lowest
     print *, "highest = ", highest
     print *, "tau_start_redshiftwindows = ", tau_start_redshiftwindows
-
 
 end subroutine transferdata
 

@@ -67,6 +67,18 @@
     implicit none
     private
 
+    ! data struct to transfer state and besse data
+    Type datastatebessel
+        double precision :: s_tau0, s_chi0, s_curvature_radius, &
+            s_tau_start_redshiftwindows
+        logical :: s_flat, s_closed
+        integer :: s_num_redshiftwindows, s_num_extra_redshiftwindows, &
+            s_npoints
+        double precision, dimension(:), allocatable :: s_points, s_dpoints
+        double precision, dimension(:), allocatable :: b_points
+        double precision :: s_lowest, s_highest
+    end type datastatebessel
+
     logical :: WantLateTime = .false. !if lensing or redshift windows
 
     logical ExactClosedSum  !do all nu values in sum for Cls for Omega_k>0.1
@@ -237,6 +249,9 @@
     real :: elapsed_time
     type(IntegrationVars) :: IV
 
+    ! data to be transfer from state and besse ranges
+    Type(datastatebessel) :: datasb
+
     if (CP%WantScalars) ThisSources => State%ScalarTimeSources
 
     if (DebugMsgs .and. Feedbacklevel > 0) call Timer%Start()
@@ -273,7 +288,28 @@
 ! OPEANACC
 
         ! transfor State and BessRanges into functions and data 
-        call transferdata(State, BessRanges)
+
+        if (allocated(State%TimeSteps%points)) then
+            print *, "allocated: ", size(State%TimeSteps%points)
+            allocate(datasb%s_points( size(State%TimeSteps%points) ))
+            datasb%s_points = State%TimeSteps%points
+        end if
+        if (allocated(State%TimeSteps%dpoints)) then
+            print *, "allocated: ", size(State%TimeSteps%dpoints)
+            allocate(datasb%s_dpoints( size(State%TimeSteps%dpoints) ))
+            datasb%s_dpoints = State%TimeSteps%dpoints
+        end if
+        if (allocated(BessRanges%points)) then
+            print *, "allocated: ", size(BessRanges%points)
+            allocate(datasb%b_points( size(BessRanges%points) ))
+            datasb%b_points = BessRanges%points
+        end if
+
+        call transferdata(State, BessRanges, datasb%s_tau0, datasb%s_chi0, & 
+            datasb%s_curvature_radius, datasb%s_tau_start_redshiftwindows, &
+            datasb%s_flat, datasb%s_closed, datasb%s_num_redshiftwindows, &
+            datasb%s_num_extra_redshiftwindows, datasb%s_npoints, &
+            datasb%s_lowest, datasb%s_highest)
 
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
