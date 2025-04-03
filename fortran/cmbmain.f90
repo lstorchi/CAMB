@@ -80,9 +80,8 @@
 
         ! need it for indexof 
         integer :: s_count, b_count
-        double precision, dimension(:), allocatable :: s_low, s_high, s_delta
-        double precision, dimension(:), allocatable :: b_low, b_high, b_delta
-        integer, dimension(:), allocatable :: s_start_index, b_start_index
+        Type(TRange), dimension(:), allocatable :: s_r
+        Type(TRange), dimension(:), allocatable :: b_r
     end type datastatebessel
 
     logical :: WantLateTime = .false. !if lensing or redshift windows
@@ -309,6 +308,20 @@
             print *, "allocated: ", size(BessRanges%points)
             allocate(datasb%b_points( size(BessRanges%points) ))
             datasb%b_points = BessRanges%points
+        end if
+
+        ! for indexof 
+        datasb%s_count = State%TimeSteps%count
+        datasb%b_count = BessRanges%count
+        if (allocated(State%TimeSteps%R)) then
+            print *, "allocated: ", size(State%TimeSteps%R)
+            allocate(datasb%s_r( size(State%TimeSteps%R) ))
+            datasb%s_r = State%TimeSteps%R
+        end if
+        if (allocated(BessRanges%R)) then
+            print *, "allocated: ", size(BessRanges%R)
+            allocate(datasb%b_r( size(BessRanges%R) ))
+            datasb%b_r = BessRanges%R
         end if
 
         call transferdata(State, BessRanges, datasb%s_tau0, datasb%s_chi0, & 
@@ -1518,7 +1531,7 @@
             !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
             llmax=nint(nu*staterofchi(datasbin%s_flat, datasbin%s_closed, &
                 datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
-            llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
+            !llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
             llmax=min(llmax,nint(nu)-1)  !nu >= l+1
         end if
     else
@@ -1531,7 +1544,7 @@
             !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
             llmax = nint(nu*staterofchi (datasbin%s_flat, datasbin%s_closed, & 
                      datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
-            llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
+            !llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
         end if
     end if
 

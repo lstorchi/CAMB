@@ -51,7 +51,9 @@ function statindexof (tau)
     integer :: statindexof
     double precision, intent(in) :: tau
     integer :: pointstep, i
-    
+    !  importante type(TRange), allocatable :: R(:) 
+    !   that is  type(TRange), allocatable :: R(:)
+
     pointstep=0
     !do i=1, this%count
     !    associate(AReg => this%R(i)) here I need to check  
