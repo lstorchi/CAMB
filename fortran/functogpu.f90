@@ -1,12 +1,14 @@
-subroutine transferdata (statein, bessein, &
+subroutine transferdata (statein, &
     s_tau0, s_chi0, s_curvature_radius, s_tau_start_redshiftwindows, &
     s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
     s_npoints, s_lowest, s_highest)
 
+    inplicit none
+
     use results
 
     class(CAMBdata), intent(in) :: statein
-    class(TRanges), intent(in) :: bessein
+    !class(TRanges), intent(in) :: bessein
 
     double precision, intent(inout) :: s_tau0, s_chi0, s_curvature_radius, &
         s_tau_start_redshiftwindows
@@ -19,7 +21,7 @@ subroutine transferdata (statein, bessein, &
 
     s_tau0 = statein%tau0
     s_chi0 = statein%chi0
-    s_falt = statein%flat
+    s_flat = statein%flat
     s_closed = statein%closed
     s_curvature_radius = statein%curvature_radius
     s_num_redshiftwindows = statein%num_redshiftwindows
@@ -29,17 +31,17 @@ subroutine transferdata (statein, bessein, &
     s_highest = statein%TimeSteps%Highest
     s_tau_start_redshiftwindows = statein%ThermoData%tau_start_redshiftwindows
 
-    print *, "tau0 = ", tau0
-    print *, "chi0 = ", chi0
-    print *, "flat = ", flat
-    print *, "closed = ", closed
-    print *, "curvature_radius = ", curvature_radius
-    print *, "num_redshiftwindows = ", num_redshiftwindows
-    print *, "num_extra_redshiftwindows = ", num_extra_redshiftwindows
-    print *, "npoints = ", npoints
-    print *, "lowest = ", lowest
-    print *, "highest = ", highest
-    print *, "tau_start_redshiftwindows = ", tau_start_redshiftwindows
+    print *, "tau0 = ", s_tau0
+    print *, "chi0 = ", s_chi0
+    print *, "flat = ", s_flat
+    print *, "closed = ", s_closed
+    print *, "curvature_radius = ", s_curvature_radius
+    print *, "num_redshiftwindows = ", s_num_redshiftwindows
+    print *, "num_extra_redshiftwindows = ", s_num_extra_redshiftwindows
+    print *, "npoints = ", s_npoints
+    print *, "lowest = ", s_lowest
+    print *, "highest = ", s_highest
+    print *, "tau_start_redshiftwindows = ", s_tau_start_redshiftwindows
 
 end subroutine transferdata
 

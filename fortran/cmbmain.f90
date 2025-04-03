@@ -324,7 +324,7 @@
             datasb%b_r = BessRanges%R
         end if
 
-        call transferdata(State, BessRanges, datasb%s_tau0, datasb%s_chi0, & 
+        call transferdata(State, datasb%s_tau0, datasb%s_chi0, & 
             datasb%s_curvature_radius, datasb%s_tau_start_redshiftwindows, &
             datasb%s_flat, datasb%s_closed, datasb%s_num_redshiftwindows, &
             datasb%s_num_extra_redshiftwindows, datasb%s_npoints, &
