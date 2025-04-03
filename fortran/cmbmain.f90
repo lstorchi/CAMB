@@ -77,6 +77,12 @@
         double precision, dimension(:), allocatable :: s_points, s_dpoints
         double precision, dimension(:), allocatable :: b_points
         double precision :: s_lowest, s_highest
+
+        ! need it for indexof 
+        integer :: s_count, b_count
+        double precision, dimension(:), allocatable :: s_low, s_high, s_delta
+        double precision, dimension(:), allocatable :: b_low, b_high, b_delta
+        integer, dimension(:), allocatable :: s_start_index, b_start_index
     end type datastatebessel
 
     logical :: WantLateTime = .false. !if lensing or redshift windows
