@@ -3,9 +3,9 @@ subroutine transferdata (statein, &
     s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
     s_npoints, s_lowest, s_highest)
 
-    inplicit none
-
     use results
+
+    implicit none
 
     class(CAMBdata), intent(in) :: statein
     !class(TRanges), intent(in) :: bessein
