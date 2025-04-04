@@ -45,54 +45,45 @@ subroutine transferdata (statein, &
 
 end subroutine transferdata
 
-function statindexof (tau)
+function statbesseindexof (count, R, npoints, Highest, tau)
+    
+    use RangeUtils
 
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
     ! to test it compare respect to State.IndexOf 
 
-    integer :: statindexof
+    integer :: statbesseindexof
     double precision, intent(in) :: tau
+    integer , intent(in) :: count
+    type(TRanges), intent(in) :: R(count)
+    integer, intent(in) :: npoints
+    double precision, intent(in) :: Highest
+    type(TRanges), pointer :: AReg
     integer :: pointstep, i
-    !  importante type(TRange), allocatable :: R(:) 
-    !   that is  type(TRange), allocatable :: R(:)
 
     pointstep=0
-    !do i=1, this%count
-    !    associate(AReg => this%R(i)) here I need to check  
-    !        if (tau < AReg%High .and. tau >= AReg%Low) then
-    !            if (AReg%IsLog) then
-    !                pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
-    !            else
-    !                pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
-    !            end if
-    !            return
-    !        end if
-    !    end associate
-    !end do
+    do i=1, count
+        associate(AReg => R(i))
+            if (tau < AReg%High .and. tau >= AReg%Low) then
+                if (AReg%IsLog) then
+                    pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
+                else
+                    pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
+                end if
+                return
+            end if
+        end associate
+    end do
     
-    !if (tau >= this%Highest) then
-    !    pointstep = this%npoints
-    !else
-    !    print *, "tau=", tau, ",this%Highest=", this%Highest
-    !    call MpiStop('TRanges_IndexOf: value out of range')
-    !end if
+    if (tau >= Highest) then
+        pointstep = npoints
+    else
+        stop
+    end if
  
     return
 
-end function statindexof
-
-function besseindexof (tau)
-
-    !bessein%IndexOf  RangeUtils.f90 
-
-    integer :: besseindexof
-    double precision, intent(in) :: tau
-    
-    besseindexof = 0
-    
-    return
-
-end function besseindexof
+end function statbesseindexof
 
 function staterofchi (flat, closed, chi) 
     !statein%rofChi

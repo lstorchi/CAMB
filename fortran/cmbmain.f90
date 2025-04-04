@@ -1610,8 +1610,7 @@
     Type(CAMBParams) :: CPin
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasbin
-    integer, external :: besseindexof
-    integer, external :: statindexof
+    integer, external :: statbesseindexof
 
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
     custom_source_off = datasbin%s_num_redshiftwindows + datasbin%s_num_extra_redshiftwindows + 4
@@ -1624,7 +1623,10 @@
 #ifdef USEACC
         ! FIXIT CUDA
 #else
-        bes_index(j)=besseindexof(xf)
+        ! should be able to compare using th global objects
+        !bes_index(j)=BessRanges%IndexOf(xf)
+        bes_index(j)=statbesseindexof (datasbin%b_count, &
+            datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, tau)
         ! Precomputed values for the interpolation
 #endif
         bes_ix= bes_index(j)
@@ -1666,7 +1668,10 @@
 #ifdef USEACC
             ! FIXIT CUDA
 #else
-            do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
+            !do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax)
+            do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                datasbin%s_npoints, datasbin%s_Highest, tmin), &
+                min(IV%SourceSteps,statindexof(tmax))
                 a2=aa(n)
                 bes_ix=bes_index(n)
 
@@ -1688,7 +1693,10 @@
 #ifdef USEACC
                    ! FIXIT CUDA
 #else
-                   do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
+                   !do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
+                   do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                    datasbin%s_npoints, datasbin%s_Highest, tmin), &
+                    min(IV%SourceSteps,statindexof(tmax))
                        !Full Bessel integration
                        a2=aa(n)
                        bes_ix=bes_index(n)
@@ -1708,6 +1716,7 @@
 #ifdef USEACC
                         ! FIXIT CUDA
 #else
+                        !nwin = State%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows)
                         nwin = statindexof(datasbin%s_tau_start_redshiftwindows)
 #endif
                     else
