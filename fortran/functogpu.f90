@@ -53,7 +53,7 @@ subroutine transferdata (statein, bessein, &
 
 end subroutine transferdata
 
-function statbesseindexof (count, R, npoints, Highest, tau)
+function statbesseindexof (count, R, npoints, Highest, tau) result(pointstep)
     
     use RangeUtils
 
