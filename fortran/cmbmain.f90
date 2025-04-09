@@ -1530,10 +1530,10 @@
             !print *, "   Chi :", Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu)
             !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
             ! check if it is correct 
-            print *, "orig llmax: ", nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
+            !print *, "orig llmax: ", nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
             llmax=nint(nu*staterofchi(datasbin%s_flat, datasbin%s_closed, &
                 datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
-            print *, "new llmax: ", llmax
+            !print *, "new llmax: ", llmax
             !llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
             llmax=min(llmax,nint(nu)-1)  !nu >= l+1
         end if
@@ -1545,8 +1545,10 @@
             !print *, "no Chi: ", Statein%tau0/Statein%curvature_radius + sixpibynu
             !print *, "   Chi: ", Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu)
             !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
+            !print *, "orig llmax: ", nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
             llmax = nint(nu*staterofchi (datasbin%s_flat, datasbin%s_closed, & 
                      datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
+            !print *, "new llmax: ", llmax
             !llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
         end if
     end if
