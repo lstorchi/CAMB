@@ -69,15 +69,15 @@ function statbesseindexof (count, R, npoints, Highest, tau)
     type(TRange), pointer :: AReg
     integer :: i
 
-    print *, "I am in simple IndexOf "
-    print *, "  npoints: ", npoints
-    print *, "  count  : ", count
-    print *, "  tau    : ", tau 
-    print *, "  Hihest : ", Highest
-    print *, "   1st Low        :", R(1)%Low
-    print *, "   1st High       :", R(1)%High 
-    print *, "   1st delta      :", R(1)%delta
-    print *, "   1st start_index:", R(1)%start_index
+    !print *, "I am in simple IndexOf "
+    !print *, "  npoints: ", npoints
+    !print *, "  count  : ", count
+    !print *, "  tau    : ", tau 
+    !print *, "  Hihest : ", Highest
+    !print *, "   1st Low        :", R(1)%Low
+    !print *, "   1st High       :", R(1)%High 
+    !print *, "   1st delta      :", R(1)%delta
+    !print *, "   1st start_index:", R(1)%start_index
 
     statbesseindexof=0
     do i=1, count
