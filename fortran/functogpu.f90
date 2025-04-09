@@ -53,7 +53,7 @@ subroutine transferdata (statein, bessein, &
 
 end subroutine transferdata
 
-function statbesseindexof (count, R, npoints, Highest, tau) result(pointstep)
+function statbesseindexof (count, R, npoints, Highest, tau) 
     
     use RangeUtils
 
@@ -67,7 +67,7 @@ function statbesseindexof (count, R, npoints, Highest, tau) result(pointstep)
     integer, intent(in) :: npoints
     double precision, intent(in) :: Highest
     type(TRange), pointer :: AReg
-    integer :: pointstep, i
+    integer :: i
 
     print *, "I am in simple IndexOf "
     print *, "  npoints: ", npoints
@@ -79,14 +79,14 @@ function statbesseindexof (count, R, npoints, Highest, tau) result(pointstep)
     print *, "   1st delta      :", R(1)%delta
     print *, "   1st start_index:", R(1)%start_index
 
-    pointstep=0
+    statbesseindexof=0
     do i=1, count
         associate(AReg => R(i))
             if (tau < AReg%High .and. tau >= AReg%Low) then
                 if (AReg%IsLog) then
-                    pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
+                    statbesseindexof = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
                 else
-                    pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
+                    statbesseindexof = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
                 end if
                 return
             end if
@@ -94,7 +94,7 @@ function statbesseindexof (count, R, npoints, Highest, tau) result(pointstep)
     end do
     
     if (tau >= Highest) then
-        pointstep = npoints
+        statbesseindexof = npoints
     else
         stop
     end if
