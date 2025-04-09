@@ -1663,7 +1663,7 @@
         aa(j)=(datasbin%b_points(bes_ix+1)-xf)/fac(j)
         fac(j)=fac(j)**2*aa(j)/6
     end do
-    print *, "Done first indexof"
+    !print *, "Done first indexof"
 
     do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
