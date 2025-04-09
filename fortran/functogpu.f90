@@ -1,21 +1,21 @@
-subroutine transferdata (statein, &
+subroutine transferdata (statein, bessein, &
     s_tau0, s_chi0, s_curvature_radius, s_tau_start_redshiftwindows, &
     s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
-    s_npoints, s_lowest, s_highest)
+    s_npoints, s_lowest, s_highest, b_npoints, b_lowest, b_highest)
 
     use results
 
     implicit none
 
     class(CAMBdata), intent(in) :: statein
-    !class(TRanges), intent(in) :: bessein
+    class(TRanges), intent(in) :: bessein
 
     double precision, intent(inout) :: s_tau0, s_chi0, s_curvature_radius, &
         s_tau_start_redshiftwindows
     logical, intent(inout) :: s_flat, s_closed
     integer, intent(inout) :: s_num_redshiftwindows, s_num_extra_redshiftwindows, &
-        s_npoints
-    double precision, intent(inout) :: s_lowest, s_highest
+        s_npoints, b_npoints
+    double precision, intent(inout) :: s_lowest, s_highest, b_lowest, b_highest
 
     print *, "transferdata"
 
@@ -31,17 +31,25 @@ subroutine transferdata (statein, &
     s_highest = statein%TimeSteps%Highest
     s_tau_start_redshiftwindows = statein%ThermoData%tau_start_redshiftwindows
 
-    print *, "tau0 = ", s_tau0
-    print *, "chi0 = ", s_chi0
-    print *, "flat = ", s_flat
-    print *, "closed = ", s_closed
-    print *, "curvature_radius = ", s_curvature_radius
-    print *, "num_redshiftwindows = ", s_num_redshiftwindows
-    print *, "num_extra_redshiftwindows = ", s_num_extra_redshiftwindows
-    print *, "npoints = ", s_npoints
-    print *, "lowest = ", s_lowest
-    print *, "highest = ", s_highest
-    print *, "tau_start_redshiftwindows = ", s_tau_start_redshiftwindows
+    b_npoints = bessein%npoints
+    b_highest = bessein%Highest
+    b_lowest = bessein%Lowest
+
+    print *, "s_tau0 = ", s_tau0
+    print *, "s_chi0 = ", s_chi0
+    print *, "s_flat = ", s_flat
+    print *, "s_closed = ", s_closed
+    print *, "s_curvature_radius = ", s_curvature_radius
+    print *, "s_num_redshiftwindows = ", s_num_redshiftwindows
+    print *, "s_num_extra_redshiftwindows = ", s_num_extra_redshiftwindows
+    print *, "s_npoints = ", s_npoints
+    print *, "s_lowest = ", s_lowest
+    print *, "s_highest = ", s_highest
+    print *, "s_tau_start_redshiftwindows = ", s_tau_start_redshiftwindows
+    
+    print *, "b_npoints = ", b_npoints
+    print *, "b_lowest = ", b_lowest
+    print *, "b_highest = ", b_highest
 
 end subroutine transferdata
 
@@ -55,24 +63,34 @@ function statbesseindexof (count, R, npoints, Highest, tau)
     integer :: statbesseindexof
     double precision, intent(in) :: tau
     integer , intent(in) :: count
-    type(TRanges), intent(in) :: R(count)
+    type(TRange), intent(in) :: R(count)
     integer, intent(in) :: npoints
     double precision, intent(in) :: Highest
-    type(TRanges), pointer :: AReg
+    type(TRange), pointer :: AReg
     integer :: pointstep, i
+
+    print *, "I am in simple IndexOf "
+    print *, "  npoints: ", npoints
+    print *, "  count  : ", count
+    print *, "  tau    : ", tau 
+    print *, "  Hihest : ", Highest
+    print *, "   1st Low        :", R(1)%Low
+    print *, "   1st High       :", R(1)%High 
+    print *, "   1st delta      :", R(1)%delta
+    print *, "   1st start_index:", R(1)%start_index
 
     pointstep=0
     do i=1, count
-!        associate(AReg => R(i))
-!            if (tau < AReg%High .and. tau >= AReg%Low) then
-!                if (AReg%IsLog) then
-!                    pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
-!                else
-!                    pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
-!                end if
-!                return
-!            end if
-!        end associate
+        associate(AReg => R(i))
+            if (tau < AReg%High .and. tau >= AReg%Low) then
+                if (AReg%IsLog) then
+                    pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
+                else
+                    pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
+                end if
+                return
+            end if
+        end associate
     end do
     
     if (tau >= Highest) then

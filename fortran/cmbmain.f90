@@ -73,10 +73,11 @@
             s_tau_start_redshiftwindows
         logical :: s_flat, s_closed
         integer :: s_num_redshiftwindows, s_num_extra_redshiftwindows, &
-            s_npoints
+            s_npoints, b_npoints
         double precision, dimension(:), allocatable :: s_points, s_dpoints
         double precision, dimension(:), allocatable :: b_points
-        double precision :: s_lowest, s_highest
+        double precision :: s_lowest, s_highest, b_highest, &
+            b_lowest
 
         ! need it for indexof 
         integer :: s_count, b_count
@@ -324,11 +325,27 @@
             datasb%b_r = BessRanges%R
         end if
 
-        call transferdata(State, datasb%s_tau0, datasb%s_chi0, & 
-            datasb%s_curvature_radius, datasb%s_tau_start_redshiftwindows, &
-            datasb%s_flat, datasb%s_closed, datasb%s_num_redshiftwindows, &
-            datasb%s_num_extra_redshiftwindows, datasb%s_npoints, &
-            datasb%s_lowest, datasb%s_highest)
+        !call transferdata(State, BessRanges, datasb%s_tau0, datasb%s_chi0, & 
+        !    datasb%s_curvature_radius, datasb%s_tau_start_redshiftwindows, &
+        !    datasb%s_flat, datasb%s_closed, datasb%s_num_redshiftwindows, &
+        !    datasb%s_num_extra_redshiftwindows, datasb%s_npoints, &
+        !    datasb%s_lowest, datasb%s_highest, &
+        !    datasb%b_npoints, datasb%b_highest, datasb%b_lowest)
+
+        datasb%s_tau0 = State%tau0
+        datasb%s_chi0 = State%chi0
+        datasb%s_flat = State%flat
+        datasb%s_closed = State%closed
+        datasb%s_curvature_radius = State%curvature_radius
+        datasb%s_num_redshiftwindows = State%num_redshiftwindows
+        datasb%s_num_extra_redshiftwindows = State%num_extra_redshiftwindows
+        datasb%s_npoints = State%TimeSteps%npoints
+        datasb%s_lowest = State%TimeSteps%Lowest
+        datasb%s_highest = State%TimeSteps%Highest
+        datasb%s_tau_start_redshiftwindows = State%ThermoData%tau_start_redshiftwindows
+        datasb%b_npoints = BessRanges%npoints
+        datasb%b_highest = BessRanges%Highest
+        datasb%b_lowest = BessRanges%Lowest
 
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
@@ -1616,6 +1633,8 @@
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasbin
     integer, external :: statbesseindexof
+    
+    integer :: tocompare
 
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
     custom_source_off = datasbin%s_num_redshiftwindows + datasbin%s_num_extra_redshiftwindows + 4
@@ -1630,8 +1649,13 @@
 #else
         ! should be able to compare using th global objects
         bes_index(j)=BessRanges%IndexOf(xf)
-        !bes_index(j)=statbesseindexof (datasbin%b_count, &
-        !    datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, tau)
+        tocompare = bes_index(j)
+        bes_index(j)=statbesseindexof (datasbin%b_count, &
+            datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, xf)
+        if (tocompare /= bes_index(j)) then
+            print *, "Error in Bessel index: ", tocompare, bes_index(j)
+            stop
+        end if
         ! Precomputed values for the interpolation
 #endif
         bes_ix= bes_index(j)
@@ -1639,6 +1663,7 @@
         aa(j)=(datasbin%b_points(bes_ix+1)-xf)/fac(j)
         fac(j)=fac(j)**2*aa(j)/6
     end do
+    print *, "Done first indexof"
 
     do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
