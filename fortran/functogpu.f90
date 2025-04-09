@@ -63,16 +63,16 @@ function statbesseindexof (count, R, npoints, Highest, tau)
 
     pointstep=0
     do i=1, count
-        associate(AReg => R(i))
-            if (tau < AReg%High .and. tau >= AReg%Low) then
-                if (AReg%IsLog) then
-                    pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
-                else
-                    pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
-                end if
-                return
-            end if
-        end associate
+!        associate(AReg => R(i))
+!            if (tau < AReg%High .and. tau >= AReg%Low) then
+!                if (AReg%IsLog) then
+!                    pointstep = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
+!                else
+!                    pointstep = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
+!                end if
+!                return
+!            end if
+!        end associate
     end do
     
     if (tau >= Highest) then

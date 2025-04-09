@@ -1529,8 +1529,11 @@
             !print *, "no Chi :", Statein%tau0/Statein%curvature_radius + sixpibynu
             !print *, "   Chi :", Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu)
             !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
+            ! check if it is correct 
+            print *, "orig llmax: ", nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
             llmax=nint(nu*staterofchi(datasbin%s_flat, datasbin%s_closed, &
                 datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
+            print *, "new llmax: ", llmax
             !llmax=nint(nu*(datasbin%s_tau0/datasbin%s_curvature_radius + sixpibynu))
             llmax=min(llmax,nint(nu)-1)  !nu >= l+1
         end if
@@ -1624,9 +1627,9 @@
         ! FIXIT CUDA
 #else
         ! should be able to compare using th global objects
-        !bes_index(j)=BessRanges%IndexOf(xf)
-        bes_index(j)=statbesseindexof (datasbin%b_count, &
-            datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, tau)
+        bes_index(j)=BessRanges%IndexOf(xf)
+        !bes_index(j)=statbesseindexof (datasbin%b_count, &
+        !    datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, tau)
         ! Precomputed values for the interpolation
 #endif
         bes_ix= bes_index(j)
@@ -1668,10 +1671,10 @@
 #ifdef USEACC
             ! FIXIT CUDA
 #else
-            !do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax)
-            do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
-                datasbin%s_npoints, datasbin%s_Highest, tmin), &
-                min(IV%SourceSteps,statindexof(tmax))
+            do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))   
+            !do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
+            !    datasbin%s_npoints, datasbin%s_Highest, tmin), &
+            !    min(IV%SourceSteps,statindexof(tmax))
                 a2=aa(n)
                 bes_ix=bes_index(n)
 
@@ -1693,10 +1696,10 @@
 #ifdef USEACC
                    ! FIXIT CUDA
 #else
-                   !do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,Statein%TimeSteps%IndexOf(tmax))
-                   do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
-                    datasbin%s_npoints, datasbin%s_Highest, tmin), &
-                    min(IV%SourceSteps,statindexof(tmax))
+                   do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                   !do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                   ! datasbin%s_npoints, datasbin%s_Highest, tmin), &
+                   ! min(IV%SourceSteps,statindexof(tmax))
                        !Full Bessel integration
                        a2=aa(n)
                        bes_ix=bes_index(n)
@@ -1716,17 +1719,19 @@
 #ifdef USEACC
                         ! FIXIT CUDA
 #else
-                        !nwin = State%TimeSteps%IndexOf(Statein%ThermoData%tau_start_redshiftwindows)
-                        nwin = statindexof(datasbin%s_tau_start_redshiftwindows)
+                        nwin = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                        !nwin = statindexof(datasbin%s_tau_start_redshiftwindows)
 #endif
                     else
+                        !nwin = State%TimeSteps%npoints+1
                         nwin = datasbin%s_npoints+1
                     end if
                     if (CPin%CustomSources%num_custom_sources==0) then
 #ifdef USEACC
                        ! FIXIT CUDA
 #else
-                       do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
+                       do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                       !do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
                            !Full Bessel integration
                            a2=aa(n)
                            bes_ix=bes_index(n)
@@ -1750,7 +1755,8 @@
 #ifdef USEACC
                        ! FIXIT CUDA
 #else
-                       do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
+                       do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                       !do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
                            !Full Bessel integration
                            a2=aa(n)
                            bes_ix=bes_index(n)
@@ -1784,7 +1790,8 @@
 #ifdef USEACC
                     ! FIXIT CUDA
 #else
-                    n=statindexof(xf)
+                    n=State%TimeSteps%IndexOf(xf)
+                    !n=statindexof(xf)
 #endif
                     xf= (xf-datasbin%s_points(n))/(datasbin%s_points(n+1)-datasbin%s_points(n))
                     sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
@@ -1800,8 +1807,10 @@
 #ifdef USEACC
                     ! FIXIT CUDA
 #else
-                    do n= statindexof(datasbin%s_tau_start_redshiftwindows), &
-                        min(IV%SourceSteps, statindexof(tmax))
+                    !do n= statindexof(datasbin%s_tau_start_redshiftwindows), &
+                    !    min(IV%SourceSteps, statindexof(tmax))
+                    do n= State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows), &
+                            min(IV%SourceSteps, State%TimeSteps%IndexOf(tmax))
                         !Full Bessel integration
                         a2 = aa(n)
                         bes_ix = bes_index(n)
