@@ -97,7 +97,7 @@ else
       COMMON_FFLAGS = -MMD -cpp -Mextend -Minform=warn -Mextend
     endif
     ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
-      FFLAGS = -O0 -g $(COMMON_FFLAGS)
+      FFLAGS = -O0 -g $(COMMON_FFLAGS) -DCOMPARISON
     else
       FFLAGS = -O3 $(COMMON_FFLAGS)
     endif

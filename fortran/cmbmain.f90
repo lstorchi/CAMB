@@ -1633,8 +1633,11 @@
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasbin
     integer, external :: statbesseindexof
-    
+
+#ifdef COMPARISON
     integer :: tocompare
+#endif
+    integer :: startloopidx, endloopidx
 
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
     custom_source_off = datasbin%s_num_redshiftwindows + datasbin%s_num_extra_redshiftwindows + 4
@@ -1644,19 +1647,17 @@
 
     do j=1,IV%SourceSteps !Precompute arrays for this k
         xf=abs(IV%q*(datasbin%s_tau0-datasbin%s_points(j)))
-#ifdef USEACC
-        ! FIXIT CUDA
-#else
-        ! should be able to compare using th global objects
+#ifdef COMPARISON
         bes_index(j)=BessRanges%IndexOf(xf)
         tocompare = bes_index(j)
+#endif
         bes_index(j)=statbesseindexof (datasbin%b_count, &
             datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, xf)
+#ifdef COMPARISON        
         if (tocompare /= bes_index(j)) then
             print *, "Error in Bessel index: ", tocompare, bes_index(j)
             stop
         end if
-        ! Precomputed values for the interpolation
 #endif
         bes_ix= bes_index(j)
         fac(j)=datasbin%b_points(bes_ix+1)-datasbin%b_points(bes_ix)
@@ -1695,13 +1696,23 @@
 
         if (ThisSourcesin%SourceNum==2) then
             !This is the innermost loop, so we separate the no lensing scalar case to optimize it
-#ifdef USEACC
-            ! FIXIT CUDA
-#else
-            do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))   
-            !do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
-            !    datasbin%s_npoints, datasbin%s_Highest, tmin), &
-            !    min(IV%SourceSteps,statindexof(tmax))
+            startloopidx = statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                datasbin%s_npoints, datasbin%s_Highest, tmin)
+            endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
+                datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax)) 
+#ifdef COMPARISON
+            tocompare = State%TimeSteps%IndexOf(tmin)
+            if (tocompare /= startloopidx) then
+                print *, "Error in State index: ", tocompare, startloopidx
+                stop
+            end if
+            tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+            if (tocompare /= endloopidx) then
+                print *, "Error in State index: ", tocompare, endloopidx
+                stop
+            end if
+#endif
+            do n= startloopidx,endloopidx
                 a2=aa(n)
                 bes_ix=bes_index(n)
 
@@ -1712,7 +1723,6 @@
                 sums(1) = sums(1) + IV%Source_q(n,1)*J_l
                 sums(2) = sums(2) + IV%Source_q(n,2)*J_l
             end do
-#endif
         else
             qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/datasbin%s_tau0*1.2
             DoInt = .not. CPin%WantScalars .or. IV%q < qmax_int
@@ -1720,13 +1730,23 @@
 
             if (DoInt) then
                 if (CPin%CustomSources%num_custom_sources==0 .and. datasbin%s_num_redshiftwindows==0) then
-#ifdef USEACC
-                   ! FIXIT CUDA
-#else
-                   do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                   !do n= statbesseindexof (datasbin%s_count, datasbin%s_R, &
-                   ! datasbin%s_npoints, datasbin%s_Highest, tmin), &
-                   ! min(IV%SourceSteps,statindexof(tmax))
+                    startloopidx = statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                       datasbin%s_npoints, datasbin%s_Highest, tmin)
+                    endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
+                       datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
+#ifdef COMPARISON
+                    tocompare = State%TimeSteps%IndexOf(tmin)
+                    if (tocompare /= startloopidx) then
+                        print *, "Error in State index: ", tocompare, startloopidx
+                        stop
+                    end if
+                    tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                    if (tocompare /= endloopidx) then
+                        print *, "Error in State index: ", tocompare, endloopidx
+                        stop
+                    end if
+#endif
+                    do n=startloopidx,endloopidx
                        !Full Bessel integration
                        a2=aa(n)
                        bes_ix=bes_index(n)
@@ -1740,26 +1760,40 @@
                        sums(2) = sums(2) + IV%Source_q(n,2)*J_l
                        sums(3) = sums(3) + IV%Source_q(n,3)*J_l
                    end do
-#endif
                 else
                     if (datasbin%s_num_redshiftwindows>0) then
-#ifdef USEACC
-                        ! FIXIT CUDA
-#else
-                        nwin = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
-                        !nwin = statindexof(datasbin%s_tau_start_redshiftwindows)
+                        nwin = statbesseindexof(datasbin%s_count, datasbin%s_R, &
+                            datasbin%s_npoints, datasbin%s_Highest, &
+                            datasbin%s_tau_start_redshiftwindows)
+#ifdef COMPARISON  
+                        tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                        if (tocompare /= nwin) then
+                            print *, "Error in State index: ", tocompare, nwin
+                            stop
+                        end if     
 #endif
                     else
                         !nwin = State%TimeSteps%npoints+1
                         nwin = datasbin%s_npoints+1
                     end if
                     if (CPin%CustomSources%num_custom_sources==0) then
-#ifdef USEACC
-                       ! FIXIT CUDA
-#else
-                       do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                       !do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
-                           !Full Bessel integration
+                        startloopidx = statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                            datasbin%s_npoints, datasbin%s_Highest, tmin)   
+                        endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
+                            datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
+#ifdef COMPARISON
+                        tocompare = State%TimeSteps%IndexOf(tmin)
+                        if (tocompare /= startloopidx) then
+                            print *, "Error in State index: ", tocompare, startloopidx
+                            stop
+                        end if
+                        tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                        if (tocompare /= endloopidx) then
+                            print *, "Error in State index: ", tocompare, endloopidx
+                            stop
+                        end if
+#endif                        
+                        do n= startloopidx,endloopidx
                            a2=aa(n)
                            bes_ix=bes_index(n)
 
@@ -1777,14 +1811,24 @@
                                end do
                            end if
                        end do
-#endif
                     else
-#ifdef USEACC
-                       ! FIXIT CUDA
-#else
-                       do n= State%TimeSteps%IndexOf(tmin),min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                       !do n= statindexof(tmin),min(IV%SourceSteps,statindexof(tmax))
-                           !Full Bessel integration
+                        startloopidx = statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                            datasbin%s_npoints, datasbin%s_Highest, tmin)
+                        endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
+                            datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
+#ifdef COMPARISON
+                        tocompare = State%TimeSteps%IndexOf(tmin)
+                        if (tocompare /= startloopidx) then
+                            print *, "Error in State index: ", tocompare, startloopidx
+                            stop
+                        end if
+                        tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                        if (tocompare /= endloopidx) then
+                            print *, "Error in State index: ", tocompare, endloopidx
+                            stop
+                        end if
+#endif
+                        do n=startloopidx,endloopidx
                            a2=aa(n)
                            bes_ix=bes_index(n)
 
@@ -1806,7 +1850,6 @@
                                sums(s_ix) = sums(s_ix)  + IV%Source_q(n,s_ix)*J_l
                            end do
                        end do
-#endif
                     end if
                 end if
             end if
@@ -1814,12 +1857,16 @@
                 !Limber approximation for small scale lensing (better than poor version of above integral)
                 xf = datasbin%s_tau0-(ThisCT%ls%l(j)+0.5_dl)/IV%q
                 if (xf < datasbin%s_highest .and. xf > datasbin%s_lowest) then
-#ifdef USEACC
-                    ! FIXIT CUDA
-#else
-                    n=State%TimeSteps%IndexOf(xf)
-                    !n=statindexof(xf)
+                    n=statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                        datasbin%s_npoints, datasbin%s_Highest, xf)
+#ifdef COMPARISON
+                    tocompare=State%TimeSteps%IndexOf(xf)
+                    if (tocompare /= n) then
+                        print *, "Error in State index: ", tocompare, n
+                        stop
+                    end if
 #endif
+                    !n=statindexof(xf)
                     xf= (xf-datasbin%s_points(n))/(datasbin%s_points(n+1)-datasbin%s_points(n))
                     sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
                         sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/IV%q
@@ -1831,13 +1878,24 @@
                 if (any(ThisCT%limber_l_min(4:ThisSourcesin%NonCustomSourceNum)==0 .or. &
                     ThisCT%limber_l_min(4:ThisSourcesin%NonCustomSourceNum) > j)) then
                     !When CMB does not need integral but other sources do
-#ifdef USEACC
-                    ! FIXIT CUDA
-#else
-                    !do n= statindexof(datasbin%s_tau_start_redshiftwindows), &
-                    !    min(IV%SourceSteps, statindexof(tmax))
-                    do n= State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows), &
-                            min(IV%SourceSteps, State%TimeSteps%IndexOf(tmax))
+                    startloopidx = statbesseindexof (datasbin%s_count, datasbin%s_R, &
+                        datasbin%s_npoints, datasbin%s_Highest, &
+                        datasbin%s_tau_start_redshiftwindows)
+                    endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
+                        datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
+#ifdef COMPARISON
+                    tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                    if (tocompare /= startloopidx) then
+                        print *, "Error in State index: ", tocompare, startloopidx
+                        stop
+                    end if
+                    tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                    if (tocompare /= endloopidx) then
+                        print *, "Error in State index: ", tocompare, endloopidx
+                        stop
+                    end if
+#endif
+                    do n=startloopidx,endloopidx
                         !Full Bessel integration
                         a2 = aa(n)
                         bes_ix = bes_index(n)
@@ -1852,7 +1910,6 @@
                             sums(s_ix) = sums(s_ix) + IV%Source_q(n, s_ix) * J_l
                         end do
                     end do
-#endif
                 end if
             end if
         end if
@@ -1864,7 +1921,7 @@
 
     !non-flat source integration
 
-    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,Statein,CPin,ThisSourcesin)
+    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,CPin,ThisSourcesin)
     use SpherBessels
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1875,9 +1932,12 @@
     real(dl) xf,x,chi, miny1
     real(dl) sums(ThisSourcesin%SourceNum),out_arr(ThisSourcesin%SourceNum), qmax_int
     real(dl) BessIntBoost
-    class(CAMBdata) :: Statein
     Type(CAMBParams) :: CPin
 
+#ifdef COMPARISON
+    integer :: tocompare
+#endif
+    
     BessIntBoost = CPin%Accuracy%AccuracyBoost*CPin%Accuracy%BessIntBoost
 
     !Calculate chi where for smaller chi it is dissipative
@@ -1894,9 +1954,11 @@
     if (tDissipative<Statein%TimeSteps%points(1)) then
         nDissipative=2
     else
-#ifdef USEACC
-       ! FIXIT CUDA 
-#else
+        nDissipative = statbesseindexof (Statein%TimeSteps%R, &
+            Statein%TimeSteps%npoints, Statein%TimeSteps%Highest, tDissipative)+1 
+#ifdef COMPARISON
+       tocompare = State%TimeSteps%IndexOf(tDissipative)+1
+
        nDissipative = Statein%TimeSteps%IndexOf(tDissipative)+1
 #endif    
     endif
