@@ -1921,7 +1921,8 @@
 
     !non-flat source integration
 
-    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,CPin,ThisSourcesin)
+    subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,CPin,ThisSourcesin, &
+        datasbin)
     use SpherBessels
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1933,6 +1934,8 @@
     real(dl) sums(ThisSourcesin%SourceNum),out_arr(ThisSourcesin%SourceNum), qmax_int
     real(dl) BessIntBoost
     Type(CAMBParams) :: CPin
+    type(datastatebessel) :: datasbin
+    integer, external :: statbesseindexof
 
 #ifdef COMPARISON
     integer :: tocompare
