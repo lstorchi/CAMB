@@ -1922,7 +1922,7 @@
     !non-flat source integration
 
     subroutine IntegrateSourcesBessels(IV,ThisCT,j,l,nu,CPin,ThisSourcesin, &
-        datasbin)
+        Statein, datasbin)
     use SpherBessels
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
@@ -1936,6 +1936,7 @@
     Type(CAMBParams) :: CPin
     type(datastatebessel) :: datasbin
     integer, external :: statbesseindexof
+    type(CAMBdata) :: Statein
 
 #ifdef COMPARISON
     integer :: tocompare
@@ -1957,12 +1958,14 @@
     if (tDissipative<Statein%TimeSteps%points(1)) then
         nDissipative=2
     else
-        nDissipative = statbesseindexof (datasbin%s_R, &
+       nDissipative = statbesseindexof (datasbin%s_R, &
             datasbin%s_npoints, Statein%TimeSteps%Highest, tDissipative)+1 
 #ifdef COMPARISON
        tocompare = State%TimeSteps%IndexOf(tDissipative)+1
-
-       nDissipative = Statein%TimeSteps%IndexOf(tDissipative)+1
+       if (tocompare /= nDissipative) then
+           print *, "Error in State index: ", tocompare, nDissipative
+           stop
+       end if
 #endif    
     endif
     nDissipative=min(nDissipative,Statein%TimeSteps%npoints-1)
