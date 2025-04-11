@@ -26,6 +26,23 @@
     !     E. Bertschinger.  See the lICENSE file of the COSMICS distribution
     !     for restrictions on the modification and distribution of this software.
 
+#ifdef USEACC
+    MODULE DebugUtils
+    
+        IMPLICIT NONE
+    
+        CONTAINS
+  
+        !$acc routine seq  ! Crucial: Compile a sequential version for the accelerator
+        SUBROUTINE Print_From_ACC(label, value)
+            CHARACTER(LEN=*), INTENT(IN) :: label
+            INTEGER, INTENT(IN) :: value ! Or REAL, etc. depending on what you print
+            PRINT *, "ACC_DEBUG: ", label, value
+        END SUBROUTINE Print_From_ACC
+  
+    END MODULE DebugUtils
+
+#endif
     module CAMBmain
 
     !     This code evolves the linearized perturbation equations of general relativity,
@@ -248,6 +265,10 @@
     end subroutine cmbmain
 
     subroutine TimeSourcesToCl(ThisCT)
+#ifdef USEACC
+    USE DebugUtils
+#endif
+
     Type(ClTransferData) :: ThisCT 
     integer q_ix
     Type(TTimer) :: Timer
@@ -354,7 +375,7 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, & 
+        !$acc parallel loop copy(ThisCT) copyin(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integration, &
         !$acc   do_bispectrum, max_bessels_l_index, IV, datasb)
@@ -363,10 +384,15 @@
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
+#ifdef USEACC
+            CALL Print_From_ACC("Index:", q_ix)
+#else
+            write (*,*) 'Index:', q_ix
+#endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integration, do_bispectrum, max_bessels_l_index,IV)
+              full_bessel_integration, do_bispectrum, max_bessels_l_index, IV)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel loop
