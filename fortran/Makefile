@@ -1,6 +1,7 @@
 #CAMB Makefile
-NVCOMP=yes
+NVCOMP=no
 OPENACC=no
+ACTIVECOMPAREINDEXOF=yes
 ACTIVEDEBUGFLAGS=yes
 NONNATIVE=1
 
@@ -97,9 +98,12 @@ else
       COMMON_FFLAGS = -MMD -cpp -Mextend -Minform=warn -Mextend
     endif
     ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
-      FFLAGS = -O0 -g $(COMMON_FFLAGS) -DCOMPARISON
+      FFLAGS = -O0 -g $(COMMON_FFLAGS) 
     else
       FFLAGS = -O3 $(COMMON_FFLAGS)
+    endif
+    ifeq "$(ACTIVECOMPAREINDEXOF)" "yes"
+      FFLAGS += -DCOMPARISON
     endif
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
@@ -116,6 +120,9 @@ else
         FFLAGS = -O0 -g $(COMMON_FFLAGS)
       else
         FFLAGS = -O3 $(COMMON_FFLAGS)
+      endif
+      ifeq "$(ACTIVECOMPAREINDEXOF)" "yes"
+        FFLAGS += -DCOMPARISON
       endif
       DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
       ifeq ($(shell uname -s),Darwin)

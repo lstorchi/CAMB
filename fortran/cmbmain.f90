@@ -1958,7 +1958,7 @@
     if (tDissipative<Statein%TimeSteps%points(1)) then
         nDissipative=2
     else
-       nDissipative = statbesseindexof (datasbin%s_R, &
+       nDissipative = statbesseindexof (datasbin%s_count, datasbin%s_R, &
             datasbin%s_npoints, Statein%TimeSteps%Highest, tDissipative)+1 
 #ifdef COMPARISON
        tocompare = State%TimeSteps%IndexOf(tDissipative)+1
