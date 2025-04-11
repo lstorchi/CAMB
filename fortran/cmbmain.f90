@@ -379,7 +379,7 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc parallel loop copy(ThisCT) copy(ScaledSrc, & 
+        !$acc parallel loop copy(ThisCT) private(q_ix) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, IV, datasb, &
