@@ -275,9 +275,13 @@
     integer :: start_count, end_count, count_rate
     real :: elapsed_time
     type(IntegrationVars) :: IV
-
+    
     ! data to be transfer from state and besse ranges
     Type(datastatebessel) :: datasb
+
+    logical :: full_bessel_integrationin
+
+    full_bessel_integrationin = full_bessel_integration
 
     if (CP%WantScalars) ThisSources => State%ScalarTimeSources
 
@@ -377,7 +381,7 @@
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         !$acc parallel loop copy(ThisCT) copyin(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
-        !$acc   ThisSources, max_etak_scalar, full_bessel_integration, &
+        !$acc   ThisSources, max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, IV, datasb)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
@@ -392,7 +396,7 @@
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integration, do_bispectrum, max_bessels_l_index, IV)
+              full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel loop
@@ -1662,7 +1666,7 @@
 #ifdef USEACC
     INTERFACE
         FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
-            !$ACC ROUTINE SEQ 
+            !$ACC ROUTINE 
             USE RangeUtils
             INTEGER :: statbesseindexof
   

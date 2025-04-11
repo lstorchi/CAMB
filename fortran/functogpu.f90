@@ -55,7 +55,7 @@ end subroutine transferdata
 
 function statbesseindexof (count, R, npoints, Highest, tau) 
 #ifdef USEACC
-!$ACC ROUTINE SEQ
+!$ACC ROUTINE
 #endif
     use RangeUtils
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
