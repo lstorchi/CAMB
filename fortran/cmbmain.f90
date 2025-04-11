@@ -379,10 +379,11 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
-        !$acc parallel loop copy(ThisCT) copyin(ScaledSrc, & 
+        !$acc parallel loop copy(ThisCT) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integrationin, &
-        !$acc   do_bispectrum, max_bessels_l_index, IV, datasb)
+        !$acc   do_bispectrum, max_bessels_l_index, IV, datasb, &
+        !$acc   max_etak_vector)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -1566,7 +1567,7 @@
     double precision, external :: staterofchi
 
     nu=IV%q*datasbin%s_curvature_radius
-    sixpibynu  = 6._dl*const_pi/nu
+    sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
 
     if (datasbin%s_closed) then
         if (nu<20 .or. datasbin%s_tau0/datasbin%s_curvature_radius+sixpibynu > const_pi/2) then
