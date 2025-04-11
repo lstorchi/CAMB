@@ -84,7 +84,7 @@
         Type(TRange), dimension(:), allocatable :: s_r
         Type(TRange), dimension(:), allocatable :: b_r
     end type datastatebessel
-
+ 
     logical :: WantLateTime = .false. !if lensing or redshift windows
 
     logical ExactClosedSum  !do all nu values in sum for Cls for Omega_k>0.1
@@ -1632,7 +1632,24 @@
     Type(CAMBParams) :: CPin
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasbin
+
+#ifdef USEACC
+    INTERFACE
+        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
+            !$ACC ROUTINE SEQ 
+            USE RangeUtils
+            INTEGER :: statbesseindexof
+  
+            INTEGER, INTENT(IN) :: count            
+            TYPE(TRange), INTENT(IN) :: R(count)    
+            INTEGER, INTENT(IN) :: npoints         
+            DOUBLE PRECISION, INTENT(IN) :: Highest 
+            DOUBLE PRECISION, INTENT(IN) :: tau     
+        END FUNCTION statbesseindexof
+    END INTERFACE
+#else
     integer, external :: statbesseindexof
+#endif
 
 #ifdef COMPARISON
     integer :: tocompare

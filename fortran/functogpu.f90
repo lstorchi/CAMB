@@ -54,12 +54,12 @@ subroutine transferdata (statein, bessein, &
 end subroutine transferdata
 
 function statbesseindexof (count, R, npoints, Highest, tau) 
-    
+#ifdef USEACC
+!$ACC ROUTINE SEQ
+#endif
     use RangeUtils
-
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
     ! to test it compare respect to State.IndexOf 
-
     integer :: statbesseindexof
     double precision, intent(in) :: tau
     integer , intent(in) :: count
@@ -104,6 +104,9 @@ function statbesseindexof (count, R, npoints, Highest, tau)
 end function statbesseindexof
 
 function staterofchi (flat, closed, chi) 
+#ifdef USEACC
+!$ACC ROUTINE SEQ
+#endif
     !statein%rofChi
     logical, intent(in) :: flat, closed
     double precision , intent(in) :: chi
