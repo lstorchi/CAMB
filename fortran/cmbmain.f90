@@ -353,7 +353,7 @@
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
-        write (*,*) 'ThisCT%q%npoints', ThisCT%q%npoints
+        write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         !$acc parallel loop copy(ThisCT) private(q_ix) copyin(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integration, &
