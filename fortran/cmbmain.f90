@@ -662,9 +662,12 @@
         ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
         WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
         do_bispectrumin, max_bessels_l_indexin, IV)
+#ifdef USEACC
+    !$acc routine seq
+#endif
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
-    integer q_ix, max_bessels_l_indexin
+    integer :: q_ix, max_bessels_l_indexin
     Type(CAMBParams) :: CPin
     type(IntegrationVars) :: IV
     real(dl), dimension(:,:,:) ::  ScaledSrcin
@@ -673,12 +676,16 @@
     logical :: WantLateTimein
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasbin   
+    
+    !call IntegrationVars_Init(IV, datasbin)
+    ! to avoid a call 
 
-!   I need to move it outside 
-    call IntegrationVars_Init(IV, datasbin)
+    IV%Source_q(1,:)=0
+    IV%Source_q(datasbin%s_npoints,:) = 0
+    IV%Source_q(datasbin%s_npoints-1,:) = 0
 
     IV%q_ix = q_ix
-    IV%q =ThisCT%q%points(q_ix)
+    IV%q = ThisCT%q%points(q_ix)
     IV%dq= ThisCT%q%dpoints(q_ix)
 
     call InterpolateSources(IV, ThisSourcesin, CPin, ScaledSrcin, ddScaledSrcin, &
@@ -688,8 +695,6 @@
     call DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
             datasbin)
-
-!   maybe need dto move outsid
 
     end subroutine SourceToTransfers
 ! OPEANACC
@@ -1618,6 +1623,9 @@
     end subroutine DoSourceIntegration
 
     function UseLimber(l, CPin)
+#ifdef USEACC
+    !$ACC ROUTINE
+#endif
     !Calculate lensing potential power using Limber rather than j_l integration
     !even when sources calculated as part of temperature calculation
     !(Limber better on small scales unless step sizes made much smaller)
