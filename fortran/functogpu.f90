@@ -163,8 +163,10 @@ subroutine SourceToTransfers(datasbin, &
     use results
     use RangeUtils
 
+    implicit none
+
     real(dl) :: xlimfracin, xlimminin
-    real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
+    real(dl), dimension(:,:) :: ajlin, ajlprin
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer :: q_ix, max_bessels_l_indexin
@@ -180,6 +182,9 @@ subroutine SourceToTransfers(datasbin, &
     !call IntegrationVars_Init(IV, datasbin)
     ! to avoid a call 
 
+    !print *, "allocated ajlin: ", allocated(ajlin)
+    !print *, "allocated ajlprin: ", allocated(ajlprin)
+
     IV%Source_q(1,:)=0
     IV%Source_q(datasbin%s_npoints,:) = 0
     IV%Source_q(datasbin%s_npoints-1,:) = 0
@@ -192,14 +197,12 @@ subroutine SourceToTransfers(datasbin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasbin)
 
-    call DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
-            full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-            datasbin,xlimfrac,xlimmin,ajl,ajlpr)
+    !call DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
+    !        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+    !        datasbin,xlimfracin,xlimminin,ajlin,ajlprin)
 
 end subroutine SourceToTransfers
-! OPEANACC
 
-! OPENACC
 subroutine InterpolateSources(IV, ThisSourcesin, CPin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, &
     max_etak_scalarin, datasbin)
@@ -288,7 +291,7 @@ end subroutine InterpolateSources
 
 subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasbin,xlimfrac,xlimmin,ajl,ajlpr) !for particular wave number q
+    datasbin,xlimfracin,xlimminin,ajlin,ajlprin) !for particular wave number q
     use CAMBmain
     use precision
     use model
@@ -296,8 +299,8 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
 
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
-    real(dl), dimension(:,:), allocatable, intent(inout) :: ajl, ajlpr
-    real(dl) xlimfrac, xlimmin
+    real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
+    real(dl) xlimfracin, xlimminin
     integer j,ll,llmax, max_bessels_l_indexin 
     real(dl) nu
     real(dl) :: sixpibynu
@@ -345,7 +348,7 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     if (datasbin%s_flat) then
         call DoFlatIntegration(IV,ThisCT, llmax, CPin, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-          datasbin,xlimfrac,xlimmin,ajl,ajlpr)
+          datasbin,xlimfracin,xlimminin,ajlin,ajlprin)
     else
         print * , "not yet fully ported"
         stop
@@ -361,7 +364,7 @@ end subroutine DoSourceIntegration
     !flat source integration
 subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasbin,xlimfrac,xlimmin,ajl,ajlpr)
+    datasbin,xlimfracin,xlimminin,ajlin,ajlprin)
 #ifdef USEACC
     !$ACC ROUTINE
 #endif
@@ -378,8 +381,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     integer llmax
     integer j
     logical DoInt
-    real(dl) xlimfrac, xlimmin
-    real(dl), dimension(:,:), allocatable, intent(inout) :: ajl, ajlpr
+    real(dl) xlimfracin, xlimminin
+    real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     real(dl) xlim,xlmax1
     real(dl) tmin, tmax
     real(dl) a2, J_l, aa(IV%SourceSteps), fac(IV%SourceSteps)
@@ -456,8 +459,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
 
     do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
-        xlim=xlimfrac*ThisCT%ls%l(j)
-        xlim=max(xlim,xlimmin)
+        xlim=xlimfracin*ThisCT%ls%l(j)
+        xlim=max(xlim,xlimminin)
         xlim=ThisCT%ls%l(j)-xlim
         if (full_bessel_integrationin .or. do_bispectrumin) then
             tmin = datasbin%s_points(2)
@@ -505,8 +508,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                 a2=aa(n)
                 bes_ix=bes_index(n)
 
-                J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                    *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
+                    *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
 
                 J_l = J_l*datasbin%s_dpoints(n)
                 sums(1) = sums(1) + IV%Source_q(n,1)*J_l
@@ -541,8 +544,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                        a2=aa(n)
                        bes_ix=bes_index(n)
 
-                       J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                           *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                       J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
+                           *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                        J_l = J_l*datasbin%s_dpoints(n)
 
                        !The unwrapped form is faster
@@ -589,8 +592,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                            a2=aa(n)
                            bes_ix=bes_index(n)
 
-                           J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                               *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                           J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
+                               *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                            J_l = J_l*datasbin%s_dpoints(n)
 
                            !The unwrapped form is faster
@@ -625,8 +628,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                            a2=aa(n)
                            bes_ix=bes_index(n)
 
-                           J_l=a2*ajl(bes_ix,j)+(1-a2)*(ajl(bes_ix+1,j) - ((a2+1) &
-                               *ajlpr(bes_ix,j)+(2-a2)*ajlpr(bes_ix+1,j))* fac(n)) !cubic spline
+                           J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
+                               *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                            J_l = J_l*datasbin%s_dpoints(n)
 
                            !The unwrapped form is faster
@@ -695,9 +698,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                         a2 = aa(n)
                         bes_ix = bes_index(n)
 
-                        J_l = a2 * ajl(bes_ix, j) + (1 - a2) * (ajl(bes_ix + 1, j) -&
-                            ((a2 + 1) * ajlpr(bes_ix, j) + (2 - a2) * &
-                            ajlpr(bes_ix + 1, j)) * fac(n)) !cubic spline
+                        J_l = a2 * ajlin(bes_ix, j) + (1 - a2) * (ajlin(bes_ix + 1, j) -&
+                            ((a2 + 1) * ajlprin(bes_ix, j) + (2 - a2) * &
+                            ajlprin(bes_ix + 1, j)) * fac(n)) !cubic spline
                         J_l = J_l * datasbin%s_dpoints(n)
 
                         sums(4) = sums(4) + IV%Source_q(n, 4) * J_l
@@ -713,5 +716,3 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     end do
 
 end subroutine DoFlatIntegration
-
-

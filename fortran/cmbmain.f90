@@ -373,17 +373,16 @@
         datasb%b_highest = BessRanges%Highest
         datasb%b_lowest = BessRanges%Lowest
 
-        if (allocated(ajl)) then 
-            print *, "ajl allocated: ", size(ajl)
-        end if
+        print *, "allocated ajl: ", allocated(ajl)
+        print *, "allocated ajlpr: ", allocated(ajlpr)
 
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+        write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
-        write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         !$acc parallel loop copy(ThisCT) private(q_ix) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integrationin, &
@@ -397,7 +396,7 @@
 #ifdef USEACC
             CALL Print_From_ACC("Index:", q_ix)
 #else
-            !write (*,*) 'Index:', q_ix
+            write (*,*) 'Index:', q_ix
 #endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
