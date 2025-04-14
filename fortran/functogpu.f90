@@ -124,12 +124,37 @@ function staterofchi (flat, closed, chi)
 
 end function staterofchi
 
+function UseLimberGPU(l, CPin)
+    #ifdef USEACC
+        !$ACC ROUTINE
+    #endif
+        !Calculate lensing potential power using Limber rather than j_l integration
+        !even when sources calculated as part of temperature calculation
+        !(Limber better on small scales unless step sizes made much smaller)
+        !This affects speed, esp. of non-flat case
+        use model
+
+        logical :: UseLimberGPU
+        integer l
+        Type(CAMBParams) :: CPin
+    
+        !note increasing non-limber is not neccessarily more accurate unless AccuracyBoost much higher
+        !use **0.5 to at least give some sensitivity to Limber effects
+        !Could be lower but care with phi-T correlation at lower L
+        if (CPin%SourceTerms%limber_windows) then
+            UseLimberGPU = l >= CPin%SourceTerms%limber_phi_lmin
+        else
+            UseLimberGPU = l > 400 * (CPin%Accuracy%AccuracyBoost * CPin%Accuracy%LimberBoost)** 0.5
+        end if
+    
+end function UseLimberGPU
+
 ! OPEANACC
 subroutine SourceToTransfers(datasbin, &
     ThisCT, q_ix,  ThisSourcesin, CPin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
-    do_bispectrumin, max_bessels_l_indexin, IV)
+    do_bispectrumin, max_bessels_l_indexin, IV, xlimfrac, xlimmin, ajl, ajlpr)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -137,6 +162,8 @@ subroutine SourceToTransfers(datasbin, &
     use results
     use RangeUtils
 
+    real(dl) :: xlimfrac, xlimmin
+    real(dl), dimension(:,:), allocatable, intent(inout) :: ajl, ajlpr
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer :: q_ix, max_bessels_l_indexin
@@ -166,7 +193,7 @@ subroutine SourceToTransfers(datasbin, &
 
     call DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-            datasbin)
+            datasbin,xlimfrac,xlimmin,ajl,ajlpr)
 
 end subroutine SourceToTransfers
 ! OPEANACC
@@ -260,7 +287,7 @@ end subroutine InterpolateSources
 
 subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasbin) !for particular wave number q
+    datasbin,xlimfrac,xlimmin,ajl,ajlpr) !for particular wave number q
     use CAMBmain
     use precision
     use model
@@ -268,6 +295,8 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
 
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
+    real(dl), dimension(:,:), allocatable, intent(inout) :: ajl, ajlpr
+    real(dl) xlimfrac, xlimmin
     integer j,ll,llmax, max_bessels_l_indexin 
     real(dl) nu
     real(dl) :: sixpibynu
@@ -315,7 +344,7 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     if (datasbin%s_flat) then
         call DoFlatIntegration(IV,ThisCT, llmax, CPin, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-          datasbin)
+          datasbin,xlimfrac,xlimmin,ajl,ajlpr)
     else
         print * , "not yet fully ported"
         stop
@@ -331,7 +360,7 @@ end subroutine DoSourceIntegration
     !flat source integration
 subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasbin)
+    datasbin,xlimfrac,xlimmin,ajl,ajlpr)
 #ifdef USEACC
     !$ACC ROUTINE
 #endif
@@ -348,6 +377,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     integer llmax
     integer j
     logical DoInt
+    real(dl) xlimfrac, xlimmin
+    real(dl), dimension(:,:), allocatable, intent(inout) :: ajl, ajlpr
     real(dl) xlim,xlmax1
     real(dl) tmin, tmax
     real(dl) a2, J_l, aa(IV%SourceSteps), fac(IV%SourceSteps)
@@ -361,10 +392,11 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasbin
 
-#ifdef USEACC
     INTERFACE
         FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
+#ifdef USEACC
             !$ACC ROUTINE 
+#endif
             USE RangeUtils
             INTEGER :: statbesseindexof
 
@@ -375,9 +407,18 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
             DOUBLE PRECISION, INTENT(IN) :: tau     
         END FUNCTION statbesseindexof
     END INTERFACE
-#else
-    integer, external :: statbesseindexof
+
+    INTERFACE
+        FUNCTION UseLimberGPU(l, CPin)
+#ifdef USEACC
+            !$ACC ROUTINE
 #endif
+            use model
+            INTEGER :: UseLimberGPU
+            INTEGER :: l
+            TYPE(CAMBParams) :: CPin
+        END FUNCTION UseLimberGPU
+    END INTERFACE
 
 #ifdef COMPARISON
     integer :: tocompare
@@ -604,7 +645,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                     end if
                 end if
             end if
-            if (.not. DoInt .or. UseLimber(ThisCT%ls%l(j), CPin) .and. CPin%WantScalars) then
+            if (.not. DoInt .or. UseLimberGPU(ThisCT%ls%l(j), CPin) .and. CPin%WantScalars) then
                 !Limber approximation for small scale lensing (better than poor version of above integral)
                 xf = datasbin%s_tau0-(ThisCT%ls%l(j)+0.5_dl)/IV%q
                 if (xf < datasbin%s_highest .and. xf > datasbin%s_lowest) then
@@ -671,3 +712,5 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     end do
 
 end subroutine DoFlatIntegration
+
+

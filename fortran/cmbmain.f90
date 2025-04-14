@@ -82,7 +82,6 @@
     use DarkEnergyInterface
     use MathUtils
     implicit none
-    private
     public :: datastatebessel, IntegrationVars
 
     ! data struct to transfer state and besse data
@@ -102,12 +101,6 @@
         Type(TRange), dimension(:), allocatable :: s_r
         Type(TRange), dimension(:), allocatable :: b_r
     end type datastatebessel
- 
-    logical :: WantLateTime = .false. !if lensing or redshift windows
-
-    logical ExactClosedSum  !do all nu values in sum for Cls for Omega_k>0.1
-
-    !Variables for integrating the sources with the bessel functions for each wavenumber
     type, public :: IntegrationVars
         integer q_ix
         real(dl) q, dq    !q value we are doing and delta q
@@ -117,6 +110,13 @@
         integer SourceSteps !number of steps up to where source is zero
     end type IntegrationVars
 
+    private
+ 
+    logical :: WantLateTime = .false. !if lensing or redshift windows
+
+    logical ExactClosedSum  !do all nu values in sum for Cls for Omega_k>0.1
+
+    !Variables for integrating the sources with the bessel functions for each wavenumber
     real(dl), dimension(:,:), allocatable :: iCl_scalar, iCl_vector, iCl_tensor
     ! Cls at the l values we actually compute,  iCl_xxx(l_index, Cl_type, initial_power_index)
 
@@ -384,7 +384,7 @@
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, IV, datasb, &
-        !$acc   max_etak_vector)
+        !$acc   max_etak_vector, xlimfrac, xlimmin, ajl, ajlpr)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -393,12 +393,13 @@
 #ifdef USEACC
             CALL Print_From_ACC("Index:", q_ix)
 #else
-            write (*,*) 'Index:', q_ix
+            !write (*,*) 'Index:', q_ix
 #endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV)
+              full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
+              xlimfrac,xlimmin,ajl,ajlpr)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel loop
