@@ -373,6 +373,10 @@
         datasb%b_highest = BessRanges%Highest
         datasb%b_lowest = BessRanges%Lowest
 
+        if (allocated(ajl)) then 
+            print *, "ajl allocated: ", size(ajl)
+        end if
+
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
