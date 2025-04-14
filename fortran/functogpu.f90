@@ -154,7 +154,8 @@ subroutine SourceToTransfers(datasbin, &
     ThisCT, q_ix,  ThisSourcesin, CPin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
-    do_bispectrumin, max_bessels_l_indexin, IV, xlimfrac, xlimmin, ajl, ajlpr)
+    do_bispectrumin, max_bessels_l_indexin, IV, &
+    xlimfracin, xlimminin, ajlin, ajlprin)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -162,8 +163,8 @@ subroutine SourceToTransfers(datasbin, &
     use results
     use RangeUtils
 
-    real(dl) :: xlimfrac, xlimmin
-    real(dl), dimension(:,:), allocatable, intent(inout) :: ajl, ajlpr
+    real(dl) :: xlimfracin, xlimminin
+    real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer :: q_ix, max_bessels_l_indexin
