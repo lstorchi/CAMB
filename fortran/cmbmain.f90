@@ -83,9 +83,10 @@
     use MathUtils
     implicit none
     private
+    public :: datastatebessel, IntegrationVars
 
     ! data struct to transfer state and besse data
-    Type datastatebessel
+    Type, public :: datastatebessel
         double precision :: s_tau0, s_chi0, s_curvature_radius, &
             s_tau_start_redshiftwindows
         logical :: s_flat, s_closed
@@ -107,7 +108,7 @@
     logical ExactClosedSum  !do all nu values in sum for Cls for Omega_k>0.1
 
     !Variables for integrating the sources with the bessel functions for each wavenumber
-    type IntegrationVars
+    type, public :: IntegrationVars
         integer q_ix
         real(dl) q, dq    !q value we are doing and delta q
         !Contribution to C_l integral from this k
