@@ -670,7 +670,7 @@
     integer :: q_ix, max_bessels_l_indexin
     Type(CAMBParams) :: CPin
     type(IntegrationVars) :: IV
-    real(dl), dimension(:,:,:) ::  ScaledSrcin
+    real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
     real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
     logical :: WantLateTimein
