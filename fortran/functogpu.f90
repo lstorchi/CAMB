@@ -263,6 +263,8 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     datasbin) !for particular wave number q
     use CAMBmain
     use precision
+    use model
+    use results
 
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
@@ -336,6 +338,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
 
     use CAMBmain
     use precision
+    use model
+    use results
 
     implicit none
     type(IntegrationVars) IV
@@ -389,16 +393,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     do j=1,IV%SourceSteps !Precompute arrays for this k
         xf=abs(IV%q*(datasbin%s_tau0-datasbin%s_points(j)))
 #ifdef COMPARISON
-        bes_index(j)=BessRanges%IndexOf(xf)
-        tocompare = bes_index(j)
+        ! in case need to use a statein as input
+        !bes_index(j)=BessRanges%IndexOf(xf)
+        !tocompare = bes_index(j)
 #endif
         bes_index(j)=statbesseindexof (datasbin%b_count, &
             datasbin%b_R, datasbin%b_npoints, datasbin%b_Highest, xf)
 #ifdef COMPARISON        
-        if (tocompare /= bes_index(j)) then
-            print *, "Error in Bessel index: ", tocompare, bes_index(j)
-            stop
-        end if
+        !if (tocompare /= bes_index(j)) then
+        !    print *, "Error in Bessel index: ", tocompare, bes_index(j)
+        !    stop
+        !end if
 #endif
         bes_ix= bes_index(j)
         fac(j)=datasbin%b_points(bes_ix+1)-datasbin%b_points(bes_ix)
@@ -442,16 +447,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
             endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
                 datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax)) 
 #ifdef COMPARISON
-            tocompare = State%TimeSteps%IndexOf(tmin)
-            if (tocompare /= startloopidx) then
-                print *, "Error in State index: ", tocompare, startloopidx
-                stop
-            end if
-            tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-            if (tocompare /= endloopidx) then
-                print *, "Error in State index: ", tocompare, endloopidx
-                stop
-            end if
+            ! in case need to use a statein as input
+            !tocompare = State%TimeSteps%IndexOf(tmin)
+            !if (tocompare /= startloopidx) then
+            !    print *, "Error in State index: ", tocompare, startloopidx
+            !    stop
+            !end if
+            !tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+            !if (tocompare /= endloopidx) then
+            !    print *, "Error in State index: ", tocompare, endloopidx
+            !    stop
+            !end if
 #endif
             do n= startloopidx,endloopidx
                 a2=aa(n)
@@ -476,16 +482,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                     endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
                        datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
 #ifdef COMPARISON
-                    tocompare = State%TimeSteps%IndexOf(tmin)
-                    if (tocompare /= startloopidx) then
-                        print *, "Error in State index: ", tocompare, startloopidx
-                        stop
-                    end if
-                    tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                    if (tocompare /= endloopidx) then
-                        print *, "Error in State index: ", tocompare, endloopidx
-                        stop
-                    end if
+                    ! in case need to use a statein as input
+                    !tocompare = State%TimeSteps%IndexOf(tmin)
+                    !if (tocompare /= startloopidx) then
+                    !    print *, "Error in State index: ", tocompare, startloopidx
+                    !    stop
+                    !end if
+                    !tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                    !if (tocompare /= endloopidx) then
+                    !    print *, "Error in State index: ", tocompare, endloopidx
+                    !    stop
+                    !end if
 #endif
                     do n=startloopidx,endloopidx
                        !Full Bessel integration
@@ -507,11 +514,12 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                             datasbin%s_npoints, datasbin%s_Highest, &
                             datasbin%s_tau_start_redshiftwindows)
 #ifdef COMPARISON  
-                        tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
-                        if (tocompare /= nwin) then
-                            print *, "Error in State index: ", tocompare, nwin
-                            stop
-                        end if     
+                        ! in case need to use a statein as input
+                        !tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                        !if (tocompare /= nwin) then
+                        !    print *, "Error in State index: ", tocompare, nwin
+                        !    stop
+                        !end if     
 #endif
                     else
                         !nwin = State%TimeSteps%npoints+1
@@ -523,16 +531,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                         endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
                             datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
 #ifdef COMPARISON
-                        tocompare = State%TimeSteps%IndexOf(tmin)
-                        if (tocompare /= startloopidx) then
-                            print *, "Error in State index: ", tocompare, startloopidx
-                            stop
-                        end if
-                        tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                        if (tocompare /= endloopidx) then
-                            print *, "Error in State index: ", tocompare, endloopidx
-                            stop
-                        end if
+                        ! in case need to use a statein as input
+                        !tocompare = State%TimeSteps%IndexOf(tmin)
+                        !if (tocompare /= startloopidx) then
+                        !    print *, "Error in State index: ", tocompare, startloopidx
+                        !    stop
+                        !end if
+                        !tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                        !if (tocompare /= endloopidx) then
+                        !    print *, "Error in State index: ", tocompare, endloopidx
+                        !    stop
+                        !end if
 #endif                        
                         do n= startloopidx,endloopidx
                            a2=aa(n)
@@ -558,16 +567,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                         endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
                             datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
 #ifdef COMPARISON
-                        tocompare = State%TimeSteps%IndexOf(tmin)
-                        if (tocompare /= startloopidx) then
-                            print *, "Error in State index: ", tocompare, startloopidx
-                            stop
-                        end if
-                        tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                        if (tocompare /= endloopidx) then
-                            print *, "Error in State index: ", tocompare, endloopidx
-                            stop
-                        end if
+                        ! in case need to use a statein as input
+                        !tocompare = State%TimeSteps%IndexOf(tmin)
+                        !if (tocompare /= startloopidx) then
+                        !    print *, "Error in State index: ", tocompare, startloopidx
+                        !    stop
+                        !end if
+                        !tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                        !if (tocompare /= endloopidx) then
+                        !    print *, "Error in State index: ", tocompare, endloopidx
+                        !    stop
+                        !end if
 #endif
                         do n=startloopidx,endloopidx
                            a2=aa(n)
@@ -601,11 +611,12 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                     n=statbesseindexof (datasbin%s_count, datasbin%s_R, &
                         datasbin%s_npoints, datasbin%s_Highest, xf)
 #ifdef COMPARISON
-                    tocompare=State%TimeSteps%IndexOf(xf)
-                    if (tocompare /= n) then
-                        print *, "Error in State index: ", tocompare, n
-                        stop
-                    end if
+                    ! in case need to use a statein as input
+                    !tocompare=State%TimeSteps%IndexOf(xf)
+                    !if (tocompare /= n) then
+                    !    print *, "Error in State index: ", tocompare, n
+                    !    stop
+                    !end if
 #endif
                     !n=statindexof(xf)
                     xf= (xf-datasbin%s_points(n))/(datasbin%s_points(n+1)-datasbin%s_points(n))
@@ -625,16 +636,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                     endloopidx = min(IV%SourceSteps,statbesseindexof (datasbin%s_count, &
                         datasbin%s_R, datasbin%s_npoints, datasbin%s_Highest, tmax))
 #ifdef COMPARISON
-                    tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
-                    if (tocompare /= startloopidx) then
-                        print *, "Error in State index: ", tocompare, startloopidx
-                        stop
-                    end if
-                    tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
-                    if (tocompare /= endloopidx) then
-                        print *, "Error in State index: ", tocompare, endloopidx
-                        stop
-                    end if
+                    ! in case need to use a statein as input
+                    !tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                    !if (tocompare /= startloopidx) then
+                    !    print *, "Error in State index: ", tocompare, startloopidx
+                    !    stop
+                    !end if
+                    !tocompare = min(IV%SourceSteps,State%TimeSteps%IndexOf(tmax))
+                    !if (tocompare /= endloopidx) then
+                    !    print *, "Error in State index: ", tocompare, endloopidx
+                    !    stop
+                    !end if
 #endif
                     do n=startloopidx,endloopidx
                         !Full Bessel integration
