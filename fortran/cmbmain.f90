@@ -282,6 +282,8 @@
 
     logical :: full_bessel_integrationin
 
+    real)dl) :: xlimminin, xlimfracin
+
     full_bessel_integrationin = full_bessel_integration
 
     if (CP%WantScalars) ThisSources => State%ScalarTimeSources
@@ -380,6 +382,8 @@
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
+        xlimfracin = xlimfrac
+        xlimminin = xlimmin
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
@@ -387,17 +391,17 @@
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, CP, & 
         !$acc   ThisSources, max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, IV, datasb, &
-        !$acc   max_etak_vector, xlimfrac, xlimmin, ajl, ajlpr)
+        !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
-#ifdef USEACC
-            CALL Print_From_ACC("Index:", q_ix)
-#else
-            write (*,*) 'Index:', q_ix
-#endif
+!#ifdef USEACC
+!            CALL Print_From_ACC("Index:", q_ix)
+!#else
+!            write (*,*) 'Index:', q_ix
+!#endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
