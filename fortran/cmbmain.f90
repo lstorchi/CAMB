@@ -282,7 +282,7 @@
 
     logical :: full_bessel_integrationin
 
-    real)dl) :: xlimminin, xlimfracin
+    real(dl) :: xlimminin, xlimfracin
 
     full_bessel_integrationin = full_bessel_integration
 
