@@ -125,9 +125,9 @@ function staterofchi (flat, closed, chi)
 end function staterofchi
 
 function UseLimberGPU(l, CPin)
-    #ifdef USEACC
+#ifdef USEACC
         !$ACC ROUTINE
-    #endif
+#endif
         !Calculate lensing potential power using Limber rather than j_l integration
         !even when sources calculated as part of temperature calculation
         !(Limber better on small scales unless step sizes made much smaller)
@@ -149,7 +149,6 @@ function UseLimberGPU(l, CPin)
     
 end function UseLimberGPU
 
-! OPEANACC
 subroutine SourceToTransfers(datasbin, &
     ThisCT, q_ix,  ThisSourcesin, CPin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
@@ -166,7 +165,7 @@ subroutine SourceToTransfers(datasbin, &
     implicit none
 
     real(dl) :: xlimfracin, xlimminin
-    real(dl), dimension(:,:) :: ajlin, ajlprin
+    real(dl), dimension(:,:), allocatable :: ajlin, ajlprin
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer :: q_ix, max_bessels_l_indexin
@@ -418,7 +417,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
             !$ACC ROUTINE
 #endif
             use model
-            INTEGER :: UseLimberGPU
+            LOGICAL :: UseLimberGPU
             INTEGER :: l
             TYPE(CAMBParams) :: CPin
         END FUNCTION UseLimberGPU
