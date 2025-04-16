@@ -107,9 +107,9 @@
             ttsources_evolve_points, cp_custom_sources_nam_custom, &
             ttsources_non_custom_sources_num
         double precision :: iv_q, iv_dq, cp_accuracy_boost, &
-            cp_accuracy_besintboost, statetm_tau_start_redshift_windows
+            cp_accuracy_bessintboost, statetd_tau_start_redshift_windows
         logical :: cp_want_tensors , cp_want_scalars, cp_want_vectors, &
-            cp_want_cmb, cp_want_cmp_lencing
+            cp_want_cmb, cp_want_cmp_lensing
     end type datastatebessel
 
     type, public :: IntegrationVars
@@ -392,6 +392,17 @@
         datasb%ttsources_evolve_points = ThisSources%Evolve_q%points
         datasb%cp_custom_sources_nam_custom = CP%CustomSources%num_custom_sources
         datasb%ttsources_non_custom_sources_num = ThisSources%NonCustomSourceNum
+        datasb%iv_q = IV%q
+        datasb%iv_dq = IV%dq
+        datasb%cp_accuracy_boost = CP%Accuracy%AccuracyBoost
+        datasb%cp_accuracy_bessintboost = CP%Accuracy%BessIntBoost
+        datasb%statetd_tau_start_redshift_windows = State%ThermoData%tau_start_redshiftwindows
+        datasb%cp_want_tensors = CP%WantTensors
+        datasb%cp_want_scalars = CP%WantScalars
+        datasb%cp_want_vectors = CP%WantVectors
+        datasb%cp_want_cmb = CP%Want_CMB
+        datasb%cp_want_cmp_lensing = CP%Want_CMB_lensing
+        
 
         print *, "allocated ajl: ", allocated(ajl)
         print *, "allocated ajlpr: ", allocated(ajlpr)
