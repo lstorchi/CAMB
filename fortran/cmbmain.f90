@@ -105,11 +105,12 @@
         ! other scalars 
         integer :: iv_q_ix, iv_sourcessteps, ttsources_sourcenum, &
             cp_custom_sources_nam_custom, &
-            ttsources_non_custom_sources_num
+            ttsources_non_custom_sources_num, &
+            cp_st_limber_phi_lmin
         double precision :: iv_q, iv_dq, cp_accuracy_boost, &
-            cp_accuracy_bessintboost
+            cp_accuracy_bessintboost, cp_accuracy_liber_boost
         logical :: cp_want_tensors , cp_want_scalars, cp_want_vectors, &
-            cp_want_cmb, cp_want_cmp_lensing
+            cp_want_cmb, cp_want_cmp_lensing, cp_st_limber_windows
     end type datastatebessel
 
     type, public :: IntegrationVars
@@ -329,8 +330,8 @@
         if (DebugMsgs .and. Feedbacklevel > 0) call WriteFormat('Set %d integration k values',ThisCT%q%npoints)
 
         !Begin k-loop and integrate Sources*Bessels over time
-        call system_clock(start_count, count_rate)
 ! OPEANACC
+        call system_clock(start_count, count_rate)
 
         ! transfor State and BessRanges into functions and data 
 
@@ -400,21 +401,47 @@
         datasb%cp_want_vectors = CP%WantVectors
         datasb%cp_want_cmb = CP%Want_CMB
         datasb%cp_want_cmp_lensing = CP%Want_CMB_lensing
-        
+        datasb%cp_st_limber_windows = CP%SourceTerms%limber_windows
+        datasb%cp_st_limber_phi_lmin = CP%SourceTerms%limber_phi_lmin
+        datasb%cp_accuracy_liber_boost = CP%Accuracy%LimberBoost
 
-        print *, "allocated ajl: ", allocated(ajl)
-        print *, "allocated ajlpr: ", allocated(ajlpr)
+        print *, "allocated ajl: ", allocated(ajl), " size " , size(ajl)
+        print *, "allocated ajlpr: ", allocated(ajlpr), " size " , size(ajlpr)
 
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+
+        print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
+        print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
+        print *, "                allocated ThisCT%ls%l: ", allocated(ThisCT%ls%l), " size " , size(ThisCT%ls%l)
+        print *, "         allocated ThisCT%delta_p_l_k: ", allocated(ThisCT%delta_p_l_k), " size " , size(ThisCT%delta_p_l_k)
+        print *, "allocated ThisSources%Evolve_q%points: ", allocated(ThisSources%Evolve_q%points), " size " , size(ThisSources%Evolve_q%points)
+        print *, "            allocated datasb%s_points: ", allocated(datasb%s_points), " size " , size(datasb%s_points)
+        print *, "           allocated datasb%s_dpoints: ", allocated(datasb%s_dpoints), " size " , size(datasb%s_dpoints)
+        print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
+        print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
+        print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
+
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
         xlimminin = xlimmin
+        call system_clock(end_count, count_rate)
+        elapsed_time = real(end_count - start_count) / real(count_rate)
+        write(*,*) 'Time taken to copy data CPU-CPU:', elapsed_time
+        ! at the end we will need to avoid the CPU to CPU copy if possible 
+
+        call system_clock(start_count, count_rate)
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
-        !$acc parallel loop copy(ThisCT, CP, ThisSources, IV) &
+        !$acc parallel loop &
+        !$acc   copyin(IV%Source_q, IV%ddSource_q) & 
+        !$acc   copyin(ThisCT%ls%l, ThisCT%delta_p_l_k) &
+        !$acc   copyin(ThisSources%Evolve_q%points) &
+        !$acc   copyin(datasb%s_points, datasb%s_dpoints, &
+        !$acc          datasb%b_points, datasb%s_r, datasb%b_r) &
+        !$acc   copyin(datasb) &
         !$acc   private(q_ix) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, & 
         !$acc   max_etak_scalar, full_bessel_integrationin, &
@@ -425,13 +452,13 @@
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
-!#ifdef USEACC
-!            CALL Print_From_ACC("Index:", q_ix)
-!#else
+#ifdef USEACC
+            CALL Print_From_ACC("Index:", q_ix)
+#else
 !            write (*,*) 'Index:', q_ix
-!#endif
+#endif
             call SourceToTransfers(datasb, &
-              ThisCT, q_ix, ThisSources, CP, ScaledSrc, ddScaledSrc, &
+              ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
               xlimfrac, xlimmin, ajl, ajlpr)
@@ -1512,7 +1539,6 @@
     real(dl) BessIntBoost
     Type(CAMBParams) :: CPin
     type(datastatebessel) :: datasbin
-    integer, external :: statbesseindexof
     type(CAMBdata) :: Statein
 
 #ifdef COMPARISON

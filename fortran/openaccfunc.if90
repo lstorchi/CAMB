@@ -1,7 +1,159 @@
 ! START OPENACC 
+subroutine transferdata (statein, bessein, &
+    s_tau0, s_chi0, s_curvature_radius, s_tau_start_redshiftwindows, &
+    s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
+    s_npoints, s_lowest, s_highest, b_npoints, b_lowest, b_highest)
+
+    use results
+
+    implicit none
+
+    class(CAMBdata), intent(in) :: statein
+    class(TRanges), intent(in) :: bessein
+
+    double precision, intent(inout) :: s_tau0, s_chi0, s_curvature_radius, &
+        s_tau_start_redshiftwindows
+    logical, intent(inout) :: s_flat, s_closed
+    integer, intent(inout) :: s_num_redshiftwindows, s_num_extra_redshiftwindows, &
+        s_npoints, b_npoints
+    double precision, intent(inout) :: s_lowest, s_highest, b_lowest, b_highest
+
+    print *, "transferdata"
+
+    s_tau0 = statein%tau0
+    s_chi0 = statein%chi0
+    s_flat = statein%flat
+    s_closed = statein%closed
+    s_curvature_radius = statein%curvature_radius
+    s_num_redshiftwindows = statein%num_redshiftwindows
+    s_num_extra_redshiftwindows = statein%num_extra_redshiftwindows
+    s_npoints = statein%TimeSteps%npoints
+    s_lowest = statein%TimeSteps%Lowest
+    s_highest = statein%TimeSteps%Highest
+    s_tau_start_redshiftwindows = statein%ThermoData%tau_start_redshiftwindows
+
+    b_npoints = bessein%npoints
+    b_highest = bessein%Highest
+    b_lowest = bessein%Lowest
+
+    print *, "s_tau0 = ", s_tau0
+    print *, "s_chi0 = ", s_chi0
+    print *, "s_flat = ", s_flat
+    print *, "s_closed = ", s_closed
+    print *, "s_curvature_radius = ", s_curvature_radius
+    print *, "s_num_redshiftwindows = ", s_num_redshiftwindows
+    print *, "s_num_extra_redshiftwindows = ", s_num_extra_redshiftwindows
+    print *, "s_npoints = ", s_npoints
+    print *, "s_lowest = ", s_lowest
+    print *, "s_highest = ", s_highest
+    print *, "s_tau_start_redshiftwindows = ", s_tau_start_redshiftwindows
+    
+    print *, "b_npoints = ", b_npoints
+    print *, "b_lowest = ", b_lowest
+    print *, "b_highest = ", b_highest
+
+end subroutine transferdata
+
+
+function statbesseindexof (count, R, npoints, Highest, tau) 
+#ifdef USEACC
+!$ACC ROUTINE
+#endif
+    use RangeUtils
+    !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
+    ! to test it compare respect to State.IndexOf 
+    integer :: statbesseindexof
+    double precision, intent(in) :: tau
+    integer , intent(in) :: count
+    type(TRange), intent(in) :: R(count)
+    integer, intent(in) :: npoints
+    double precision, intent(in) :: Highest
+    type(TRange), pointer :: AReg
+    integer :: i
+
+    !print *, "I am in simple IndexOf "
+    !print *, "  npoints: ", npoints
+    !print *, "  count  : ", count
+    !print *, "  tau    : ", tau 
+    !print *, "  Hihest : ", Highest
+    !print *, "   1st Low        :", R(1)%Low
+    !print *, "   1st High       :", R(1)%High 
+    !print *, "   1st delta      :", R(1)%delta
+    !print *, "   1st start_index:", R(1)%start_index
+
+    statbesseindexof=0
+    do i=1, count
+        associate(AReg => R(i))
+            if (tau < AReg%High .and. tau >= AReg%Low) then
+                if (AReg%IsLog) then
+                    statbesseindexof = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
+                else
+                    statbesseindexof = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
+                end if
+                return
+            end if
+        end associate
+    end do
+    
+    if (tau >= Highest) then
+        statbesseindexof = npoints
+    else
+        stop
+    end if
+ 
+    return
+
+end function statbesseindexof
+
+function staterofchi (flat, closed, chi) 
+#ifdef USEACC
+!$ACC ROUTINE SEQ
+#endif
+    !statein%rofChi
+    logical, intent(in) :: flat, closed
+    double precision , intent(in) :: chi
+    double precision :: staterofchi
+
+    if (flat) then
+        staterofchi=chi
+    else if (closed) then
+        staterofchi=sin(chi)
+    else
+        staterofchi=sinh(chi)
+    endif
+    
+    return
+
+end function staterofchi
+
+function UseLimberGPU(l,  datasb)
+#ifdef USEACC
+        !$ACC ROUTINE
+#endif
+        !Calculate lensing potential power using Limber rather than j_l integration
+        !even when sources calculated as part of temperature calculation
+        !(Limber better on small scales unless step sizes made much smaller)
+        !This affects speed, esp. of non-flat case
+        use model
+
+        logical :: UseLimberGPU
+        integer l
+        Type(datastatebessel) :: datasb
+    
+        !note increasing non-limber is not neccessarily more accurate unless AccuracyBoost much higher
+        !use **0.5 to at least give some sensitivity to Limber effects
+        !Could be lower but care with phi-T correlation at lower L
+        if (datasb%cp_st_limber_windows) then
+            UseLimberGPU = l >= datasb%cp_st_limber_phi_lmin
+        else
+            UseLimberGPU = l > 400 * (datasb%cp_accuracy_boost * &
+                datasb%cp_accuracy_liber_boost)** 0.5
+        end if
+    
+end function UseLimberGPU
 
 subroutine SourceToTransfers(datasb, &
-    ThisCT, q_ix,  ThisSourcesin, CPin, ScaledSrcin, &
+    ThisCT, q_ix,  ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
     do_bispectrumin, max_bessels_l_indexin, IV, &
@@ -20,7 +172,6 @@ subroutine SourceToTransfers(datasb, &
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer :: q_ix, max_bessels_l_indexin
-    Type(CAMBParams) :: CPin
     type(IntegrationVars) :: IV
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
@@ -43,18 +194,18 @@ subroutine SourceToTransfers(datasb, &
     datasb%iv_q = ThisCT%q%points(q_ix)
     datasb%iv_dq= ThisCT%q%dpoints(q_ix)
 
-    call InterpolateSources(IV, ThisSourcesin, CPin, ScaledSrcin, ddScaledSrcin, &
+    call InterpolateSources(IV, ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasb)
 
-    call DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
+    call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
             datasb,xlimfracin,xlimminin,ajlin,ajlprin)
 
 end subroutine SourceToTransfers
 
 
-subroutine InterpolateSources(IV, ThisSourcesin, CPin, ScaledSrcin, &
+subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, &
     max_etak_scalarin, datasb)
 
@@ -65,7 +216,6 @@ subroutine InterpolateSources(IV, ThisSourcesin, CPin, ScaledSrcin, &
     integer i,khi,klo, step
     real(dl) xf,b0,ho,a0,ho2o6,a03,b03
     type(IntegrationVars) IV
-    Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
@@ -141,7 +291,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, CPin, ScaledSrcin, &
  
 end subroutine InterpolateSources
 
-subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
+subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
     datasb,xlimfracin,xlimminin,ajlin,ajlprin) !for particular wave number q
 !    use CAMBmain
@@ -156,11 +306,9 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     integer j,ll,llmax, max_bessels_l_indexin 
     real(dl) nu
     real(dl) :: sixpibynu
-    Type(CAMBParams) :: CPin
     Type(TTimeSources) :: ThisSourcesin
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasb
-    double precision, external :: staterofchi
 
     nu=datasb%iv_q*datasb%s_curvature_radius
     sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
@@ -198,7 +346,7 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
     end if
 
     if (datasb%s_flat) then
-        call DoFlatIntegration(IV,ThisCT, llmax, CPin, ThisSourcesin, &
+        call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
           datasb,xlimfracin,xlimminin,ajlin,ajlprin)
     else
@@ -207,14 +355,14 @@ subroutine DoSourceIntegration(IV, ThisCT, CPin, ThisSourcesin, &
         !do j=1,ThisCT%ls%nl
         !    ll=ThisCT%ls%l(j)
         !    if (ll>llmax) exit
-        !    call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,CPin,ThisSourcesin)
+        !    call IntegrateSourcesBessels(IV,ThisCT,j,ll,nu,Statein,ThisSourcesin)
         !end do !j loop
     end if
 
 end subroutine DoSourceIntegration
 
 
-subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
+subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
     datasb,xlimfracin,xlimminin,ajlin,ajlprin)
 #ifdef USEACC
@@ -246,36 +394,23 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
     integer custom_source_off, s_ix
     integer nwin, max_bessels_l_indexin
     real(dl) :: BessIntBoost
-    Type(CAMBParams) :: CPin
     logical :: full_bessel_integrationin, do_bispectrumin
 
-    INTERFACE
-        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
-#ifdef USEACC
-            !$ACC ROUTINE 
-#endif
-            USE RangeUtils
-            INTEGER :: statbesseindexof
-
-            INTEGER, INTENT(IN) :: count            
-            TYPE(TRange), INTENT(IN) :: R(count)    
-            INTEGER, INTENT(IN) :: npoints         
-            DOUBLE PRECISION, INTENT(IN) :: Highest 
-            DOUBLE PRECISION, INTENT(IN) :: tau     
-        END FUNCTION statbesseindexof
-    END INTERFACE
-
-    INTERFACE
-        FUNCTION UseLimberGPU(l, CPin)
-#ifdef USEACC
-            !$ACC ROUTINE
-#endif
-            use model
-            LOGICAL :: UseLimberGPU
-            INTEGER :: l
-            TYPE(CAMBParams) :: CPin
-        END FUNCTION UseLimberGPU
-    END INTERFACE
+!    INTERFACE
+!        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
+!#ifdef USEACC
+!            !$ACC ROUTINE 
+!#endif
+!            USE RangeUtils
+!            INTEGER :: statbesseindexof
+!
+!            INTEGER, INTENT(IN) :: count            
+!            TYPE(TRange), INTENT(IN) :: R(count)    
+!            INTEGER, INTENT(IN) :: npoints         
+!            DOUBLE PRECISION, INTENT(IN) :: Highest 
+!            DOUBLE PRECISION, INTENT(IN) :: tau     
+!        END FUNCTION statbesseindexof
+!    END INTERFACE
 
 #ifdef COMPARISON
     integer :: tocompare
@@ -501,7 +636,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, CPin, ThisSourcesin, &
                     end if
                 end if
             end if
-            if (.not. DoInt .or. UseLimberGPU(ThisCT%ls%l(j), CPin) .and. datasb%cp_want_scalars) then
+            if (.not. DoInt .or. UseLimberGPU(ThisCT%ls%l(j), datasb) .and. datasb%cp_want_scalars) then
                 !Limber approximation for small scale lensing (better than poor version of above integral)
                 xf = datasb%s_tau0-(ThisCT%ls%l(j)+0.5_dl)/datasb%iv_q
                 if (xf < datasb%s_highest .and. xf > datasb%s_lowest) then
