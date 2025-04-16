@@ -414,11 +414,11 @@
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
-        !$acc parallel loop copy(ThisCT, CP, ThisSources) &
+        !$acc parallel loop copy(ThisCT, CP, ThisSources, IV) &
         !$acc   private(q_ix) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, & 
         !$acc   max_etak_scalar, full_bessel_integrationin, &
-        !$acc   do_bispectrum, max_bessels_l_index, IV, datasb, &
+        !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
