@@ -104,10 +104,10 @@
 
         ! other scalars 
         integer :: iv_q_ix, iv_sourcessteps, ttsources_sourcenum, &
-            ttsources_evolve_points, cp_custom_sources_nam_custom, &
+            cp_custom_sources_nam_custom, &
             ttsources_non_custom_sources_num
         double precision :: iv_q, iv_dq, cp_accuracy_boost, &
-            cp_accuracy_bessintboost, statetd_tau_start_redshift_windows
+            cp_accuracy_bessintboost
         logical :: cp_want_tensors , cp_want_scalars, cp_want_vectors, &
             cp_want_cmb, cp_want_cmp_lensing
     end type datastatebessel
@@ -389,14 +389,12 @@
         datasb%iv_q_ix = IV%q_ix
         datasb%iv_sourcessteps = IV%SourceSteps
         datasb%ttsources_sourcenum = ThisSources%SourceNum
-        datasb%ttsources_evolve_points = ThisSources%Evolve_q%points
         datasb%cp_custom_sources_nam_custom = CP%CustomSources%num_custom_sources
         datasb%ttsources_non_custom_sources_num = ThisSources%NonCustomSourceNum
         datasb%iv_q = IV%q
         datasb%iv_dq = IV%dq
         datasb%cp_accuracy_boost = CP%Accuracy%AccuracyBoost
         datasb%cp_accuracy_bessintboost = CP%Accuracy%BessIntBoost
-        datasb%statetd_tau_start_redshift_windows = State%ThermoData%tau_start_redshiftwindows
         datasb%cp_want_tensors = CP%WantTensors
         datasb%cp_want_scalars = CP%WantScalars
         datasb%cp_want_vectors = CP%WantVectors
