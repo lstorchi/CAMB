@@ -376,11 +376,13 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 
     implicit none
 
-    type(datastatebessel) :: datasb
+
+    ! input 
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
-    Type(TTimeSources) :: ThisSourcesin
     integer llmax
+    Type(TTimeSources) :: ThisSourcesin
+    type(datastatebessel) :: datasb
     integer j
     logical DoInt
     real(dl) xlimfracin, xlimminin
