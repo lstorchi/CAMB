@@ -436,12 +436,12 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         !$acc parallel loop &
-        !$acc   copyin(IV%Source_q, IV%ddSource_q) & 
-        !$acc   copyin(ThisCT%ls%l, ThisCT%delta_p_l_k) &
-        !$acc   copyin(ThisSources%Evolve_q%points) &
-        !$acc   copyin(datasb%s_points, datasb%s_dpoints, &
+        !$acc   copy(IV%Source_q, IV%ddSource_q) & 
+        !$acc   copy(ThisCT%ls%l, ThisCT%delta_p_l_k) &
+        !$acc   copy(ThisSources%Evolve_q%points) &
+        !$acc   copy(datasb%s_points, datasb%s_dpoints, &
         !$acc          datasb%b_points, datasb%s_r, datasb%b_r) &
-        !$acc   copyin(datasb) &
+        !$acc   copy(datasb) &
         !$acc   private(q_ix) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, & 
         !$acc   max_etak_scalar, full_bessel_integrationin, &
