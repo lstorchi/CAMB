@@ -432,6 +432,7 @@
         ! at the end we will need to avoid the CPU to CPU copy if possible 
 
         call system_clock(start_count, count_rate)
+        write (*,*) 'Start SourceToTransfers'
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
@@ -453,11 +454,11 @@
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
-#ifdef USEACC
-            CALL Print_From_ACC("Index:", q_ix)
-#else
+!#ifdef USEACC
+!            CALL Print_From_ACC("Index:", q_ix)
+!#else
 !            write (*,*) 'Index:', q_ix
-#endif
+!#endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
