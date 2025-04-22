@@ -334,7 +334,7 @@
         call system_clock(start_count, count_rate)
 
         ! transfor State and BessRanges into functions and data 
-
+        flush (6)
         if (allocated(State%TimeSteps%points)) then
             print *, "allocated: ", size(State%TimeSteps%points)
             allocate(datasb%s_points( size(State%TimeSteps%points) ))
@@ -433,6 +433,7 @@
 
         call system_clock(start_count, count_rate)
         write (*,*) 'Start SourceToTransfers'
+        flush (6)
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
@@ -454,11 +455,11 @@
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
-!#ifdef USEACC
-!            CALL Print_From_ACC("Index:", q_ix)
-!#else
-!            write (*,*) 'Index:', q_ix
-!#endif
+#ifdef USEACC
+            CALL Print_From_ACC("Index:", q_ix)
+#else
+            write (*,*) 'Index:', q_ix
+#endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
