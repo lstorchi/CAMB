@@ -1,10 +1,61 @@
 ! START OPENACC 
+
+subroutine spline_def_local (x,y,n,d2)
+#ifdef USEACC
+    !$acc routine seq
+#endif
+    !Low-level initialize spline arrays with default boundary conditions 
+    integer, intent(in) :: n
+    real(dl), intent(in) :: x(n), y(n)
+    real(dl), intent(out) :: d2(n)
+    real(dl) ::  d11, d1n
+    real(dl) xp,qn,sig,un,xxdiv,u(n-1),d1l,d1r
+    real(dl), parameter :: LOCALSPLINE_DANGLE=1.d30
+    integer i
+
+    d11 = LOCALSPLINE_DANGLE 
+    d1n = LOCALSPLINE_DANGLE
+
+    d1r= (y(2)-y(1))/(x(2)-x(1))
+    if (d11==SPLINE_DANGLE) then
+        d2(1)=0.d0
+        u(1)=0.d0
+    else
+        d2(1)=-0.5d0
+        u(1)=(3.d0/(x(2)-x(1)))*(d1r-d11)
+    endif
+
+    do i=2,n-1
+        d1l=d1r
+        d1r=(y(i+1)-y(i))/(x(i+1)-x(i))
+        xxdiv=1.d0/(x(i+1)-x(i-1))
+        sig=(x(i)-x(i-1))*xxdiv
+        xp=1.d0/(sig*d2(i-1)+2.d0)
+
+        d2(i)=(sig-1.d0)*xp
+
+        u(i)=(6.d0*(d1r-d1l)*xxdiv-sig*u(i-1))*xp
+    end do
+    d1l=d1r
+
+    if (d1n==LOCALSPLINE_DANGLE) then
+        qn=0.d0
+        un=0.d0
+    else
+        qn=0.5d0
+        un=(3.d0/(x(n)-x(n-1)))*(d1n-d1l)
+    endif
+
+    d2(n)=(un-qn*u(n-1))/(qn*d2(n-1)+1.d0)
+    do i=n-1,1,-1
+        d2(i)=d2(i)*d2(i+1)+u(i)
+    end do
+end subroutine spline_def_local
+
 subroutine transferdata (statein, bessein, &
     s_tau0, s_chi0, s_curvature_radius, s_tau_start_redshiftwindows, &
     s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
     s_npoints, s_lowest, s_highest, b_npoints, b_lowest, b_highest)
-
-    use results
 
     implicit none
 
@@ -284,7 +335,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
 
     if (.not.datasb%s_flat) then
         do i=1, datasb%ttsources_sourcenum
-            call spline_def(datasb%s_points,IV%Source_q(:,i),datasb%s_npoints,&
+            call spline_def_local(datasb%s_points,IV%Source_q(:,i),datasb%s_npoints,&
                 IV%ddSource_q(:,i))
         end do
     end if
@@ -364,7 +415,7 @@ end subroutine DoSourceIntegration
 
 subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+    datasb, xlimfracin, xlimminin, ajlin, ajlprin)
 #ifdef USEACC
     !$ACC ROUTINE
 #endif
@@ -376,17 +427,20 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 
     implicit none
 
-
     ! input 
     type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
     integer llmax
     Type(TTimeSources) :: ThisSourcesin
+    logical :: full_bessel_integrationin, do_bispectrumin
+    integer :: max_bessels_l_indexin
     type(datastatebessel) :: datasb
-    integer j
-    logical DoInt
     real(dl) xlimfracin, xlimminin
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
+
+    ! local vars    
+    integer j
+    logical DoInt
     real(dl) xlim,xlmax1
     real(dl) tmin, tmax
     real(dl) a2, J_l, aa(datasb%iv_sourcessteps), fac(datasb%iv_sourcessteps)
@@ -394,9 +448,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     real(dl) qmax_int
     integer bes_ix,n, bes_index(datasb%iv_sourcessteps)
     integer custom_source_off, s_ix
-    integer nwin, max_bessels_l_indexin
+    integer nwin
     real(dl) :: BessIntBoost
-    logical :: full_bessel_integrationin, do_bispectrumin
 
 !    INTERFACE
 !        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
@@ -705,6 +758,5 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     end do
 
 end subroutine DoFlatIntegration
-
 
 ! END OPENACC 

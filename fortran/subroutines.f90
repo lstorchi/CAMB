@@ -7,9 +7,6 @@
     contains
     
     subroutine spline_def(x,y,n,d2)
-#ifdef USEACC
-    !$acc routine seq
-#endif
     !Low-level initialize spline arrays with default boundary conditions 
     integer, intent(in) :: n
     real(sp_acc), intent(in) :: x(n), y(n)

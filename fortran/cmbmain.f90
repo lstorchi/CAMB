@@ -441,7 +441,8 @@
         !$acc   copy(ThisSources%Evolve_q%points) &
         !$acc   copy(datasb%s_points, datasb%s_dpoints, &
         !$acc          datasb%b_points, datasb%s_r, datasb%b_r) &
-        !$acc   copy(datasb) &
+        !$acc   copy(datasb, datasb%s_points, datasb%b_points) &
+        !$acc   copy(datasb%s_dpoints, datasb%s_r, datasb%b_r) &
         !$acc   private(q_ix) copy(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, & 
         !$acc   max_etak_scalar, full_bessel_integrationin, &
