@@ -2,7 +2,7 @@
 
 subroutine spline_def_local (x,y,n,d2)
 #ifdef USEACC
-    !$acc routine seq
+!$acc routine seq
 #endif
     !Low-level initialize spline arrays with default boundary conditions 
     integer, intent(in) :: n
@@ -108,7 +108,7 @@ end subroutine transferdata
 
 function statbesseindexof (count, R, npoints, Highest, tau) 
 #ifdef USEACC
-!$ACC ROUTINE
+!$ACC ROUTINE SEQ
 #endif
     use RangeUtils
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
@@ -179,7 +179,7 @@ end function staterofchi
 
 function UseLimberGPU(l,  datasb)
 #ifdef USEACC
-        !$ACC ROUTINE
+!$ACC ROUTINE SEQ
 #endif
         !Calculate lensing potential power using Limber rather than j_l integration
         !even when sources calculated as part of temperature calculation
@@ -259,6 +259,9 @@ end subroutine SourceToTransfers
 subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, &
     max_etak_scalarin, datasb)
+#ifdef USEACC
+!$acc routine seq
+#endif
 
 !    use CAMBmain
 !    use results
@@ -345,6 +348,10 @@ end subroutine InterpolateSources
 subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
     datasb,xlimfracin,xlimminin,ajlin,ajlprin) !for particular wave number q
+#ifdef USEACC
+!$acc routine seq
+#endif
+
 !    use CAMBmain
 !    use precision
 !    use model
@@ -417,7 +424,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin)
 #ifdef USEACC
-    !$ACC ROUTINE
+!$ACC ROUTINE SEQ
 #endif
 
 !    use CAMBmain

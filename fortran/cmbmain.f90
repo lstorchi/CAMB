@@ -438,7 +438,7 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         !$acc parallel loop &
-        !$acc   copy(IV%Source_q, IV%ddSource_q) & 
+        !$acc   copyin(IV%Source_q, IV%ddSource_q) & 
         !$acc   copy(ThisCT%ls%l, ThisCT%delta_p_l_k) &
         !$acc   copy(ThisSources%Evolve_q%points) &
         !$acc   copy(datasb%s_points, datasb%s_dpoints, &
@@ -455,11 +455,11 @@
 #endif        
         do q_ix=1,ThisCT%q%npoints
             ! do not think so but maybe I will need to zerpos the allocated arrays
-#ifdef USEACC
-            CALL Print_From_ACC("Index:", q_ix)
-#else
-            write (*,*) 'Index:', q_ix
-#endif
+!#ifdef USEACC
+!            CALL Print_From_ACC("Index:", q_ix)
+!#else
+!            write (*,*) 'Index:', q_ix
+!#endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
