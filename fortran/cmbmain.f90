@@ -439,17 +439,18 @@
         ! the methods as standalone function 
         !$acc parallel loop &
         !$acc   copyin(IV%Source_q, IV%ddSource_q) & 
-        !$acc   copy(ThisCT%ls%l, ThisCT%delta_p_l_k) &
-        !$acc   copy(ThisSources%Evolve_q%points) &
-        !$acc   copy(datasb%s_points, datasb%s_dpoints, &
+        !$acc   copyin(ThisCT%ls%l) &
+        !$acc   copyin(ThisSources%Evolve_q%points) &
+        !$acc   copyin(datasb%s_points, datasb%s_dpoints, &
         !$acc          datasb%b_points, datasb%s_r, datasb%b_r) &
-        !$acc   copy(datasb, datasb%s_points, datasb%b_points) &
-        !$acc   copy(datasb%s_dpoints, datasb%s_r, datasb%b_r) &
-        !$acc   private(q_ix) copy(ScaledSrc, & 
+        !$acc   copyin(datasb, datasb%s_points, datasb%b_points) &
+        !$acc   copyin(datasb%s_dpoints, datasb%s_r, datasb%b_r) &
+        !$acc   private(q_ix) copyin(ScaledSrc, & 
         !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, & 
         !$acc   max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
-        !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr)
+        !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
+        !$acc   copy(ThisCT%delta_p_l_k) 
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -2511,6 +2512,6 @@
 
     end subroutine InterpolateCls
 
-#include "openaccfunc.if90"
+#include "openaccfunc.f90"
 
     end module CAMBmain

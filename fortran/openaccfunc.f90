@@ -119,7 +119,6 @@ function statbesseindexof (count, R, npoints, Highest, tau)
     type(TRange), intent(in) :: R(count)
     integer, intent(in) :: npoints
     double precision, intent(in) :: Highest
-    type(TRange), pointer :: AReg
     integer :: i
 
     !print *, "I am in simple IndexOf "
@@ -132,18 +131,16 @@ function statbesseindexof (count, R, npoints, Highest, tau)
     !print *, "   1st delta      :", R(1)%delta
     !print *, "   1st start_index:", R(1)%start_index
 
-    statbesseindexof=0
+    statbesseindexof=1
     do i=1, count
-        associate(AReg => R(i))
-            if (tau < AReg%High .and. tau >= AReg%Low) then
-                if (AReg%IsLog) then
-                    statbesseindexof = AReg%start_index + int(log(tau / AReg%Low) / AReg%delta)
-                else
-                    statbesseindexof = AReg%start_index + int((tau - AReg%Low) / AReg%delta)
-                end if
-                return
+        if (tau < R(i)%High .and. tau >= R(i)%Low) then
+            if (R(i)%IsLog) then
+                statbesseindexof = R(i)%start_index + int(log(tau / R(i)%Low) / R(i)%delta)
+            else
+                statbesseindexof = R(i)%start_index + int((tau - R(i)%Low) / R(i)%delta)
             end if
-        end associate
+            return
+        end if
     end do
     
     if (tau >= Highest) then
@@ -185,7 +182,7 @@ function UseLimberGPU(l,  datasb)
         !even when sources calculated as part of temperature calculation
         !(Limber better on small scales unless step sizes made much smaller)
         !This affects speed, esp. of non-flat case
-        use model
+        !use model
 
         logical :: UseLimberGPU
         integer l
@@ -461,7 +458,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 !    INTERFACE
 !        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
 !#ifdef USEACC
-!            !$ACC ROUTINE 
+!            !$ACC ROUTINE SEQ 
 !#endif
 !            USE RangeUtils
 !            INTEGER :: statbesseindexof
@@ -474,9 +471,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 !        END FUNCTION statbesseindexof
 !    END INTERFACE
 
-#ifdef COMPARISON
-    integer :: tocompare
-#endif
+    !integer :: tocompare
     integer :: startloopidx, endloopidx
 
     BessIntBoost = datasb%cp_accuracy_boost*datasb%cp_accuracy_bessintboost
@@ -487,19 +482,14 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 
     do j=1,datasb%iv_sourcessteps !Precompute arrays for this k
         xf=abs(datasb%iv_q*(datasb%s_tau0-datasb%s_points(j)))
-#ifdef COMPARISON
         ! in case need to use a statein as input
-        tocompare=BessRanges%IndexOf(xf)
-#endif
+        !tocompare=BessRanges%IndexOf(xf)
+        
         bes_index(j)=statbesseindexof (datasb%b_count, &
             datasb%b_R, datasb%b_npoints, datasb%b_Highest, xf)
-#ifdef COMPARISON        
-        if (tocompare /= bes_index(j)) then
-            print *, "Error in Bessel index: ", tocompare, bes_index(j)
-            stop
-        end if
-#endif
         bes_ix= bes_index(j)
+        !bes_ix=1
+
         fac(j)=datasb%b_points(bes_ix+1)-datasb%b_points(bes_ix)
         aa(j)=(datasb%b_points(bes_ix+1)-xf)/fac(j)
         fac(j)=fac(j)**2*aa(j)/6
@@ -527,7 +517,6 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
         if (.not. datasb%cp_want_cmb .and. .not. datasb%cp_want_cmp_lensing) &
             tmin = max(tmin, datasb%s_tau_start_redshiftwindows)
 
-
         if (tmax < datasb%s_points(2)) exit
         sums = 0
 
@@ -540,19 +529,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                 datasb%s_npoints, datasb%s_Highest, tmin)
             endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                 datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax)) 
-#ifdef COMPARISON
             ! in case need to use a statein as input
-            tocompare = State%TimeSteps%IndexOf(tmin)
-            if (tocompare /= startloopidx) then
-                print *, "Error in State index: ", tocompare, startloopidx
-                stop
-            end if
-            tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
-            if (tocompare /= endloopidx) then
-                print *, "Error in State index: ", tocompare, endloopidx
-                stop
-            end if
-#endif
+            !tocompare = State%TimeSteps%IndexOf(tmin)
+            !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
             do n= startloopidx,endloopidx
                 a2=aa(n)
                 bes_ix=bes_index(n)
@@ -575,19 +554,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                        datasb%s_npoints, datasb%s_Highest, tmin)
                     endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                        datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
-#ifdef COMPARISON
                     ! in case need to use a statein as input
-                    tocompare = State%TimeSteps%IndexOf(tmin)
-                    if (tocompare /= startloopidx) then
-                        print *, "Error in State index: ", tocompare, startloopidx
-                        stop
-                    end if
-                    tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
-                    if (tocompare /= endloopidx) then
-                        print *, "Error in State index: ", tocompare, endloopidx
-                        stop
-                    end if
-#endif
+                    !tocompare = State%TimeSteps%IndexOf(tmin)
+                    !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                     do n=startloopidx,endloopidx
                        !Full Bessel integration
                        a2=aa(n)
@@ -607,14 +576,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                         nwin = statbesseindexof(datasb%s_count, datasb%s_R, &
                             datasb%s_npoints, datasb%s_Highest, &
                             datasb%s_tau_start_redshiftwindows)
-#ifdef COMPARISON  
                         ! in case need to use a statein as input
-                        tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
-                        if (tocompare /= nwin) then
-                            print *, "Error in State index: ", tocompare, nwin
-                            stop
-                        end if     
-#endif
+                        !tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
                     else
                         !nwin = State%TimeSteps%npoints+1
                         nwin = datasb%s_npoints+1
@@ -624,19 +587,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                             datasb%s_npoints, datasb%s_Highest, tmin)   
                         endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                             datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
-#ifdef COMPARISON
                         ! in case need to use a statein as input
-                        tocompare = State%TimeSteps%IndexOf(tmin)
-                        if (tocompare /= startloopidx) then
-                            print *, "Error in State index: ", tocompare, startloopidx
-                            stop
-                        end if
-                        tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
-                        if (tocompare /= endloopidx) then
-                            print *, "Error in State index: ", tocompare, endloopidx
-                            stop
-                        end if
-#endif                        
+                        !tocompare = State%TimeSteps%IndexOf(tmin)
+                        !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                         do n= startloopidx,endloopidx
                            a2=aa(n)
                            bes_ix=bes_index(n)
@@ -660,19 +613,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                             datasb%s_npoints, datasb%s_Highest, tmin)
                         endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                             datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
-#ifdef COMPARISON
                         ! in case need to use a statein as input
-                        tocompare = State%TimeSteps%IndexOf(tmin)
-                        if (tocompare /= startloopidx) then
-                            print *, "Error in State index: ", tocompare, startloopidx
-                            stop
-                        end if
-                        tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
-                        if (tocompare /= endloopidx) then
-                            print *, "Error in State index: ", tocompare, endloopidx
-                            stop
-                        end if
-#endif
+                        !tocompare = State%TimeSteps%IndexOf(tmin)
+                        !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                         do n=startloopidx,endloopidx
                            a2=aa(n)
                            bes_ix=bes_index(n)
@@ -704,14 +647,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                 if (xf < datasb%s_highest .and. xf > datasb%s_lowest) then
                     n=statbesseindexof (datasb%s_count, datasb%s_R, &
                         datasb%s_npoints, datasb%s_Highest, xf)
-#ifdef COMPARISON
                     ! in case need to use a statein as input
-                    tocompare=State%TimeSteps%IndexOf(xf)
-                    if (tocompare /= n) then
-                        print *, "Error in State index: ", tocompare, n
-                        stop
-                    end if
-#endif
+                    !tocompare=State%TimeSteps%IndexOf(xf)
                     !n=statindexof(xf)
                     xf= (xf-datasb%s_points(n))/(datasb%s_points(n+1)-datasb%s_points(n))
                     sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
@@ -729,19 +666,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                         datasb%s_tau_start_redshiftwindows)
                     endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                         datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
-#ifdef COMPARISON
                     ! in case need to use a statein as input
-                    tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
-                    if (tocompare /= startloopidx) then
-                        print *, "Error in State index: ", tocompare, startloopidx
-                        stop
-                    end if
-                    tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
-                    if (tocompare /= endloopidx) then
-                        print *, "Error in State index: ", tocompare, endloopidx
-                        stop
-                    end if
-#endif
+                    !tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
+                    !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                     do n=startloopidx,endloopidx
                         !Full Bessel integration
                         a2 = aa(n)
@@ -762,7 +689,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
         end if
 
         ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) + sums
-    end do
+     end do
 
 end subroutine DoFlatIntegration
 
