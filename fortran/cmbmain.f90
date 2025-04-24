@@ -463,7 +463,7 @@
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
         !$acc   copy(DebugEvolution)
-        !$ACC LOOP GANG, VECTOR(4) &
+        !$ACC PARALLEL LOOP GANG, VECTOR(4) 
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
