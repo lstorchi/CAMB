@@ -246,9 +246,9 @@ subroutine SourceToTransfers(datasb, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasb, DebugEvolutionin)
 
-    !call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
-    !        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    !        datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+    call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
+            full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+            datasb,xlimfracin,xlimminin,ajlin,ajlprin)
 
 end subroutine SourceToTransfers
 
@@ -301,6 +301,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     step=2
     do i=2, datasb%s_npoints
         xf=datasb%iv_q*(datasb%s_tau0-datasb%s_points(i))
+        
         if (datasb%cp_want_tensors) then
             if (datasb%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
                 step=i
@@ -311,6 +312,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
                 IV%Source_q(i,:) = 0
             end if
         end if
+
         if (datasb%cp_want_vectors) then
             if (datasb%iv_q*datasb%s_points(i) < max_etak_vectorin.and. xf > 1.e-8_dl) then
                 step=i
@@ -325,8 +327,8 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
             if ((DebugEvolutionin .or. WantLateTimein .or. datasb%iv_q*datasb%s_points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
                 step=i
-                !IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
-                !    b03 * ddScaledSrcin(khi,:,i)) * ho2o6
+                IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                    b03 * ddScaledSrcin(khi,:,i)) * ho2o6
             else
                 IV%Source_q(i,:) = 0
             end if
