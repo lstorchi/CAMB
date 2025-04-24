@@ -285,7 +285,7 @@
     Type(ClTransferData) :: ThisCT 
     integer q_ix
     Type(TTimer) :: Timer
-    integer :: start_count, end_count, count_rate
+    integer :: start_count, end_count, count_rate, bes_ix, bes_ix_check
     real :: elapsed_time
     type(IntegrationVars) :: IV
     
@@ -295,6 +295,8 @@
     logical :: full_bessel_integrationin
 
     real(dl) :: xlimminin, xlimfracin
+    
+    write(*,*) 'bes_ix:', bes_ix
 
     full_bessel_integrationin = full_bessel_integration
 
@@ -413,6 +415,7 @@
         ! I should allocate this only in the GPU
         allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
         if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+        
 
         print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
@@ -424,6 +427,7 @@
         print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
         print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
         print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
+        print *, "                         bes_ix_check: ", bes_ix_check, ' bes_ix :', bes_ix
 
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
@@ -467,7 +471,7 @@
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
-              xlimfrac, xlimmin, ajl, ajlpr)
+              xlimfrac, xlimmin, ajl, ajlpr, bes_ix_check)
         end do !q loop
 #ifdef USEACC
         !$acc end parallel loop
@@ -480,6 +484,7 @@
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
         write(*,*) 'Time taken for main task:', elapsed_time
+        write(*,*) 'bes_ix check:', bes_ix_check, 'bes_ix :', bes_ix
 
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if
@@ -2723,7 +2728,7 @@ subroutine SourceToTransfers(datasb, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
     do_bispectrumin, max_bessels_l_indexin, IV, &
-    xlimfracin, xlimminin, ajlin, ajlprin)
+    xlimfracin, xlimminin, ajlin, ajlprin, bes_ix_check)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -2737,7 +2742,7 @@ subroutine SourceToTransfers(datasb, &
     real(dl), dimension(:,:), allocatable :: ajlin, ajlprin
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
-    integer :: q_ix, max_bessels_l_indexin
+    integer :: q_ix, max_bessels_l_indexin, bes_ix_check
     type(IntegrationVars) :: IV
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
@@ -2766,7 +2771,7 @@ subroutine SourceToTransfers(datasb, &
 
     call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-            datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+            datasb,xlimfracin,xlimminin,ajlin,ajlprin, bes_ix_check)
 
 end subroutine SourceToTransfers
 
@@ -2862,7 +2867,7 @@ end subroutine InterpolateSources
 
 subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb,xlimfracin,xlimminin,ajlin,ajlprin) !for particular wave number q
+    datasb,xlimfracin,xlimminin,ajlin,ajlprin, bes_ix_check) !for particular wave number q
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -2876,7 +2881,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     Type(ClTransferData) :: ThisCT    
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     real(dl) xlimfracin, xlimminin
-    integer j,ll,llmax, max_bessels_l_indexin 
+    integer j,ll,llmax, max_bessels_l_indexin, bes_ix_check 
     real(dl) nu
     real(dl) :: sixpibynu
     Type(TTimeSources) :: ThisSourcesin
@@ -2921,7 +2926,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     if (datasb%s_flat) then
         call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-          datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+          datasb,xlimfracin,xlimminin,ajlin,ajlprin, bes_ix_check)
     else
         print * , "not yet fully ported"
         stop
@@ -2937,7 +2942,7 @@ end subroutine DoSourceIntegration
 
 subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb, xlimfracin, xlimminin, ajlin, ajlprin)
+    datasb, xlimfracin, xlimminin, ajlin, ajlprin, bes_ix_check)
 #ifdef USEACC
 !$ACC ROUTINE SEQ
 #endif
@@ -2968,7 +2973,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     real(dl) a2, J_l, aa(datasb%iv_sourcessteps), fac(datasb%iv_sourcessteps)
     real(dl) xf, sums(datasb%ttsources_sourcenum)
     real(dl) qmax_int
-    integer bes_ix,n, bes_index(datasb%iv_sourcessteps)
+    integer bes_ix,n, bes_index(datasb%iv_sourcessteps), bes_ix_check
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
@@ -3211,7 +3216,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                 end if
             end if
         end if
-
+        bes_ix_check = bes_ix
         ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) + sums
      end do
 
