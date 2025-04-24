@@ -429,7 +429,7 @@
         print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
         print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
         print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
-        print *, "                         bes_ix_check: ", bes_ix_check, ' bes_ix :', bes_ix
+        print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
 
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
@@ -442,7 +442,8 @@
         call system_clock(start_count, count_rate)
         write (*,*) 'Start SourceToTransfers'
         flush (6)
-        allocate(bes_ix_check(datasb%iv_sourcessteps))
+        allocate(bes_ix_check(2000))
+        bes_ix_check = 0
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
@@ -491,6 +492,7 @@
             write(*,*) 'bes_ix check:', i, " ==> ", bes_ix_check(i)
         end do
         deallocate(bes_ix_check)
+        stop
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if
 
@@ -2861,6 +2863,8 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
         end if
     end do
     datasb%iv_sourcessteps = step
+
+    !print *, "Step: ", step 
 
     if (.not.datasb%s_flat) then
         do i=1, datasb%ttsources_sourcenum
