@@ -297,7 +297,7 @@
     real(dl) :: xlimminin, xlimfracin
 
     double precision, dimension(:), allocatable :: print_array
-
+    logical :: DebugEvolutionin
     !double precision , allocatable, dimension(:) :: bes_ix_check
     !integer :: i
 
@@ -409,6 +409,7 @@
         datasb%cp_st_limber_windows = CP%SourceTerms%limber_windows
         datasb%cp_st_limber_phi_lmin = CP%SourceTerms%limber_phi_lmin
         datasb%cp_accuracy_liber_boost = CP%Accuracy%LimberBoost
+        DebugEvolutionin = DebugEvolution
 
         print *, "allocated ajl: ", allocated(ajl), " size " , size(ajl), &
             " shape: ", shape(ajl)
@@ -448,8 +449,9 @@
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
-        ! can use ACC PARALLEL LOOP GANG, VECTOR(4) 
-        !$ACC DATA copy(IV%Source_q, IV%ddSource_q) & 
+        ! should use something like  ACC PARALLEL LOOP GANG, VECTOR(4) 
+
+        !$ACC PARALLEL LOOP copy(IV%Source_q, IV%ddSource_q) & 
         !$acc   copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
         !$acc   copy(ThisSources%Evolve_q%points) &
         !$acc   copy(datasb%s_points, datasb%s_dpoints, &
@@ -462,8 +464,7 @@
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
-        !$acc   copy(DebugEvolution)
-        !$ACC PARALLEL LOOP 
+        !$acc   copyin(DebugEvolutionin)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -482,9 +483,9 @@
               !, bes_ix_check)
         end do !q loop
 #ifdef USEACC
-        !$ACC END LOOP
-        !$ACC END DATA
-        ! need to use maybe $acc end parallel loop
+        !$ACC END PARALLEL LOOP
+        ! shoulf use maybe $ACC END LOOP
+        ! and so $ACC END DATA
 #else
         !$OMP END PARALLEL DO
 #endif
