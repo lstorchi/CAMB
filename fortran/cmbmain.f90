@@ -3082,8 +3082,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 
                        J_l= 1.0d-10
                        !if ((bes_ix <= 55368) .and. (j <= 254))then
-                           J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
-                           *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
+                          J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
+                          *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                         !endif
                         J_l = J_l*datasb%s_dpoints(n)
 
