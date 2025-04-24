@@ -296,6 +296,8 @@
 
     real(dl) :: xlimminin, xlimfracin
 
+    double precision, dimension(:), allocatable :: print_array
+
     !double precision , allocatable, dimension(:) :: bes_ix_check
     !integer :: i
 
@@ -451,7 +453,7 @@
         !$acc   copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
         !$acc   copy(ThisSources%Evolve_q%points) &
         !$acc   copy(datasb%s_points, datasb%s_dpoints, &
-        !$acc          datasb%b_points, datasb%s_r, datasb%b_r) &
+        !$acc        datasb%b_points, datasb%s_r, datasb%b_r) &
         !$acc   copy(datasb, datasb%s_points, datasb%b_points) &
         !$acc   copy(datasb%s_dpoints, datasb%s_r, datasb%b_r) &
         !$acc   private(q_ix) copy(ScaledSrc, & 
@@ -459,7 +461,8 @@
         !$acc   max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
-        !$acc   copy(ThisCT%delta_p_l_k) 
+        !$acc   copy(ThisCT%delta_p_l_k) &
+        !$acc   copy(DebugEvolution)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -474,7 +477,7 @@
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
-              xlimfrac, xlimmin, ajl, ajlpr)
+              xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution)
               !, bes_ix_check)
         end do !q loop
 #ifdef USEACC
@@ -483,7 +486,7 @@
         !$OMP END PARALLEL DO
 #endif
         open(100, file='iv_sourcessteps.txt', status='replace')
-        write(100,*) datasb%iv_sourcessteps 
+        write(100,*) datasb%iv_sourcessteps
         close(100)
         open(100, file='Source_q.txt', status='replace')
         write(100,*) IV%Source_q

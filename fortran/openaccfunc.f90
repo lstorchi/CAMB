@@ -205,7 +205,7 @@ subroutine SourceToTransfers(datasb, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
     do_bispectrumin, max_bessels_l_indexin, IV, &
-    xlimfracin, xlimminin, ajlin, ajlprin)
+    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -225,7 +225,7 @@ subroutine SourceToTransfers(datasb, &
     real(dl), dimension(:,:,:) :: ddScaledSrcin
     real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
     logical :: WantLateTimein
-    logical :: full_bessel_integrationin, do_bispectrumin
+    logical :: full_bessel_integrationin, do_bispectrumin, DebugEvolutionin
     type(datastatebessel) :: datasb   
 
     !call IntegrationVars_Init(IV, datasb)
@@ -244,7 +244,7 @@ subroutine SourceToTransfers(datasb, &
 
     call InterpolateSources(IV, ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-      datasb)
+      datasb, DebugEvolutionin)
 
     !call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     !        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
@@ -254,8 +254,8 @@ end subroutine SourceToTransfers
 
 
 subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
-    ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, WantLateTimein, &
-    max_etak_scalarin, datasb)
+    ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
+    WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -273,6 +273,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
     logical :: WantLateTimein
     type(datastatebessel) :: datasb
+    logical :: DebugEvolutionin
 
     !     finding position of k in table Evolve_q to do the interpolation.
 
@@ -321,11 +322,11 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
         end if
 
         if (datasb%cp_want_scalars) then
-            if ((DebugEvolution .or. WantLateTimein .or. datasb%iv_q*datasb%s_points(i) < max_etak_scalarin) &
+            if ((DebugEvolutionin .or. WantLateTimein .or. datasb%iv_q*datasb%s_points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
-                    b03 * ddScaledSrcin(khi,:,i)) * ho2o6
+                !IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                !    b03 * ddScaledSrcin(khi,:,i)) * ho2o6
             else
                 IV%Source_q(i,:) = 0
             end if
