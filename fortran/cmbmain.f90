@@ -482,7 +482,8 @@
               !, bes_ix_check)
         end do !q loop
 #ifdef USEACC
-        !$acc end parallel loop
+        !$ACC END LOOP
+        ! need to use maybe $acc end parallel loop
 #else
         !$OMP END PARALLEL DO
 #endif
