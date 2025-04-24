@@ -246,9 +246,9 @@ subroutine SourceToTransfers(datasb, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasb)
 
-    call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
-            full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-            datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+    !call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
+    !        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+    !        datasb,xlimfracin,xlimminin,ajlin,ajlprin)
 
 end subroutine SourceToTransfers
 
