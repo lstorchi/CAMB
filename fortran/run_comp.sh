@@ -15,7 +15,7 @@ else
   exit
 fi
 
-if [$# -ne ""]; then
+if [$# -ne 1]; then
   echo "No input file provided"
   exit
 fi
