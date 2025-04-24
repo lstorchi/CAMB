@@ -404,9 +404,9 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     end if
 
     if (datasb%s_flat) then
-        call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
-          full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-          datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+    !    call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
+    !      full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+    !      datasb,xlimfracin,xlimminin,ajlin,ajlprin)
     else
         print * , "not yet fully ported"
         stop
