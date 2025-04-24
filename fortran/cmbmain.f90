@@ -285,7 +285,7 @@
     Type(ClTransferData) :: ThisCT 
     integer q_ix
     Type(TTimer) :: Timer
-    integer :: start_count, end_count, count_rate, bes_ix, bes_ix_check
+    integer :: start_count, end_count, count_rate, bes_ix
     real :: elapsed_time
     type(IntegrationVars) :: IV
     
@@ -295,8 +295,10 @@
     logical :: full_bessel_integrationin
 
     real(dl) :: xlimminin, xlimfracin
+
+    integer , allocatable, dimension(:) :: bes_ix_check
+    integer :: i
     
-    write(*,*) 'bes_ix:', bes_ix
 
     full_bessel_integrationin = full_bessel_integration
 
@@ -440,6 +442,7 @@
         call system_clock(start_count, count_rate)
         write (*,*) 'Start SourceToTransfers'
         flush (6)
+        allocate(bes_ix_check(datasb%iv_sourcessteps))
 #ifdef USEACC
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
@@ -456,7 +459,7 @@
         !$acc   max_etak_scalar, full_bessel_integrationin, &
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
-        !$acc   copy(ThisCT%delta_p_l_k) 
+        !$acc   copy(ThisCT%delta_p_l_k) copy(bes_ix_check)
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -484,8 +487,10 @@
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
         write(*,*) 'Time taken for main task:', elapsed_time
-        write(*,*) 'bes_ix check:', bes_ix_check, 'bes_ix :', bes_ix
-
+        do i=1,size(bes_ix_check)
+            write(*,*) 'bes_ix check:', i, " ==> ", bes_ix_check(i)
+        end do
+        deallocate(bes_ix_check)
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if
 
@@ -2742,7 +2747,8 @@ subroutine SourceToTransfers(datasb, &
     real(dl), dimension(:,:), allocatable :: ajlin, ajlprin
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
-    integer :: q_ix, max_bessels_l_indexin, bes_ix_check
+    integer :: q_ix, max_bessels_l_indexin
+    integer , allocatable, dimension(:) :: bes_ix_check
     type(IntegrationVars) :: IV
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
@@ -2881,7 +2887,8 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     Type(ClTransferData) :: ThisCT    
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     real(dl) xlimfracin, xlimminin
-    integer j,ll,llmax, max_bessels_l_indexin, bes_ix_check 
+    integer j,ll,llmax, max_bessels_l_indexin
+    integer , allocatable, dimension(:) :: bes_ix_check
     real(dl) nu
     real(dl) :: sixpibynu
     Type(TTimeSources) :: ThisSourcesin
@@ -2973,7 +2980,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     real(dl) a2, J_l, aa(datasb%iv_sourcessteps), fac(datasb%iv_sourcessteps)
     real(dl) xf, sums(datasb%ttsources_sourcenum)
     real(dl) qmax_int
-    integer bes_ix,n, bes_index(datasb%iv_sourcessteps), bes_ix_check
+    integer bes_ix,n, bes_index(datasb%iv_sourcessteps)
+    integer , allocatable, dimension(:) :: bes_ix_check
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
@@ -3007,17 +3015,20 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
         xf=abs(datasb%iv_q*(datasb%s_tau0-datasb%s_points(j)))
         ! in case need to use a statein as input
         !tocompare=BessRanges%IndexOf(xf)
-        
-        bes_index(j)=statbesseindexof (datasb%b_count, &
-            datasb%b_R, datasb%b_npoints, datasb%b_Highest, xf)
-        bes_ix= bes_index(j)
-        !bes_ix=1
+       
+        bes_ix_check(j)= statbesseindexof (datasb%b_count, &
+          datasb%b_R, datasb%b_npoints, datasb%b_Highest, xf)
 
-        fac(j)=datasb%b_points(bes_ix+1)-datasb%b_points(bes_ix)
-        aa(j)=(datasb%b_points(bes_ix+1)-xf)/fac(j)
-        fac(j)=fac(j)**2*aa(j)/6
+!       bes_index(j)=statbesseindexof (datasb%b_count, &
+!           datasb%b_R, datasb%b_npoints, datasb%b_Highest, xf)
+!       bes_ix= bes_index(j)
+!       fac(j)=datasb%b_points(bes_ix+1)-datasb%b_points(bes_ix)
+!       aa(j)=(datasb%b_points(bes_ix+1)-xf)/fac(j)
+!       fac(j)=fac(j)**2*aa(j)/6
     end do
     !print *, "Done first indexof"
+    
+    return 
 
     do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
@@ -3216,7 +3227,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                 end if
             end if
         end if
-        bes_ix_check = bes_ix
+        
         ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) + sums
      end do
 
