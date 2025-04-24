@@ -22,12 +22,12 @@ fi
 
 if [ -f $1 ]; then
   cp ./GPU/Makefile ./
-  cd ../forutils ; make clean; cd - ; make clean ; make -j 8
+  cd ../forutils ; make clean; cd - ; make clean ; make 
   ./camb $1 
   mv test_params.ini s_points.txt Source_q.txt s_npoints.txt iv_sourcessteps.txt ddSource_q.txt test_scalCls.dat test_scalarCovCls.dat test_lensedCls.dat test_lenspotentialCls.dat ./GPU/
   
   cp ./CPU/Makefile ./
-  cd ../forutils ; make clean; cd - ; make clean ; make -j 8
+  cd ../forutils ; make clean; cd - ; make clean ; make 
   ./camb $1 
   mv test_params.ini s_points.txt Source_q.txt s_npoints.txt iv_sourcessteps.txt ddSource_q.txt test_scalCls.dat test_scalarCovCls.dat test_lensedCls.dat test_lenspotentialCls.dat ./CPU/
   
