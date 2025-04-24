@@ -549,7 +549,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
             !Do integral if any useful contribution to the CMB, or large scale effects
 
             if (DoInt) then
-                if (datasb%cp_custom_sources_nam_custom==0 .and. datasb%s_num_redshiftwindows==0) then
+                 if (datasb%cp_custom_sources_nam_custom==0 .and. datasb%s_num_redshiftwindows==0) then
                     startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                        datasb%s_npoints, datasb%s_Highest, tmin)
                     endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
@@ -621,7 +621,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                            bes_ix=bes_index(n)
 
                            J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
-                               *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
+                              *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                            J_l = J_l*datasb%s_dpoints(n)
 
                            !The unwrapped form is faster
