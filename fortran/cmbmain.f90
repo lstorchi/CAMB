@@ -449,7 +449,7 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         ! can use ACC PARALLEL LOOP GANG, VECTOR(4) 
-        !$ACC LOOP GANG, VECTOR(4) &
+        !$ACC DATA &
         !$acc   copy(IV%Source_q, IV%ddSource_q) & 
         !$acc   copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
         !$acc   copy(ThisSources%Evolve_q%points) &
@@ -464,6 +464,7 @@
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
         !$acc   copy(DebugEvolution)
+        !$ACC LOOP GANG, VECTOR(4) &
 #else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
@@ -483,6 +484,7 @@
         end do !q loop
 #ifdef USEACC
         !$ACC END LOOP
+        !$ACC END DATA
         ! need to use maybe $acc end parallel loop
 #else
         !$OMP END PARALLEL DO
