@@ -449,7 +449,7 @@
         ! TODO: I need to copyin explicitly only the data then I need to implment 
         ! the methods as standalone function 
         ! can use ACC PARALLEL LOOP GANG, VECTOR(4) 
-        !$ACC LOOP GANG, VECTOR(4)
+        !$ACC LOOP GANG, VECTOR(4) &
         !$acc   copy(IV%Source_q, IV%ddSource_q) & 
         !$acc   copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
         !$acc   copy(ThisSources%Evolve_q%points) &
