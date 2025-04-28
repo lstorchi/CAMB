@@ -242,15 +242,17 @@ subroutine SourceToTransfers(datasb, &
     privateindexes%iv_q_ix = q_ix
     privateindexes%iv_q = ThisCT%q%points(q_ix)
     privateindexes%iv_dq = ThisCT%q%dpoints(q_ix)
+    !print *, "ThisCT%q%dpoints(q_ix) ", ThisCT%q%dpoints(q_ix)
+    !print *, "privateindexes%iv_q ", privateindexes%iv_q
 
     call InterpolateSources(IV, ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasb, DebugEvolutionin, privateindexes)
 
-    !call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
-    !        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    !        datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
-    !        privateindexes)
+    call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
+            full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+            datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
+            privateindexes)
 
 end subroutine SourceToTransfers
 
@@ -299,15 +301,15 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     a03=(a0**3-a0)
     b03=(b0**3-b0)
     privateindexes%iv_sourcessteps = 0
-   !print *, "privateindexes%iv_q : ", privateindexes%iv_q
-   !print *, "a0: ", a0
-   !print *, "b0: ", b0
-   !print *, "ho: ", ho
-   !print *, "ho2o6: ", ho2o6
-   !print *, "a03: ", a03
-   !print *, "b03: ", b03
-   !print *, "klo: ", klo
-   !print *, "khi: ", khi
+    !print *, "privateindexes%iv_q : ", privateindexes%iv_q
+    !print *, "a0: ", a0
+    !print *, "b0: ", b0
+    !print *, "ho: ", ho
+    !print *, "ho2o6: ", ho2o6
+    !print *, "a03: ", a03
+    !print *, "b03: ", b03
+    !print *, "klo: ", klo
+    !print *, "khi: ", khi
 
     !Interpolating the source as a function of time for the present
     !wavelength.

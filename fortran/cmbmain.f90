@@ -115,7 +115,8 @@
     end type datastatebessel
 
     type, public :: PrivateIdxs
-        integer :: iv_q_ix, iv_q, iv_dq, iv_sourcessteps
+        integer :: iv_q_ix, iv_sourcessteps
+        double precision :: iv_q, iv_dq
     end type PrivateIdxs
 
     type, public :: IntegrationVars
@@ -570,8 +571,6 @@
         nullify(ScaledSrc)
     end if
     
-    stop
-
     !Final calculations for CMB output unless want the Cl transfer functions only.
     if (.not. State%OnlyTransfer .and. global_error_flag==0) &
         call ClTransferToCl(State)
