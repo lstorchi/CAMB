@@ -298,7 +298,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     ho2o6 = ho**2/6
     a03=(a0**3-a0)
     b03=(b0**3-b0)
-    datasb%iv_sourcessteps = 0
+    privateindexes%iv_sourcessteps = 0
    !print *, "privateindexes%iv_q : ", privateindexes%iv_q
    !print *, "a0: ", a0
    !print *, "b0: ", b0
@@ -320,7 +320,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
                 step=i
                 IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
                     b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
-                    b03*ddScaledSrcin(khi,:,i)) *ho2o6
+                    b03*ddScaledSrcin(khi,:,i)) *ho2o
             else
                 IV%Source_q(i,:) = 0.0_dl
             end if
@@ -348,7 +348,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
             end if
         end if
     end do
-    datasb%iv_sourcessteps = step
+    privateindexes%iv_sourcessteps = step
 
     if (.not.datasb%s_flat) then
         do i=1, datasb%ttsources_sourcenum
@@ -379,7 +379,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     real(dl) nu
     real(dl) :: sixpibynu
     Type(TTimeSources) :: ThisSourcesin
-    logical :: full_bessel_integrationin, do_bispectrumin
+    logical :: full_bessel_integratioiv_sourcesstepsnin, do_bispectrumin
     type(datastatebessel) :: datasb
     type(PrivateIdxs) :: privateindexes
 
@@ -395,7 +395,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
             !print *, "   Chi :", Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu)
             !llmax=nint(nu*Statein%rofChi(Statein%tau0/Statein%curvature_radius + sixpibynu))
             ! check if it is correct 
-            !print *, "orig llmax: ", nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
+            !print *, "orig llmax: ",iv_sourcessteps nint(nu*State%rofChi(State%tau0/State%curvature_radius + sixpibynu))
             llmax=nint(nu*staterofchi(datasb%s_flat, datasb%s_closed, &
                 datasb%s_tau0/datasb%s_curvature_radius + sixpibynu))
             !print *, "new llmax: ", llmax
@@ -468,10 +468,10 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     logical DoInt
     real(dl) xlim,xlmax1
     real(dl) tmin, tmax
-    real(dl) a2, J_l, aa(datasb%iv_sourcessteps), fac(datasb%iv_sourcessteps)
+    real(dl) a2, J_l, aa(privateindexes%iv_sourcessteps), fac(privateindexes%iv_sourcessteps)
     real(dl) xf, sums(datasb%ttsources_sourcenum)
     real(dl) qmax_int
-    integer bes_ix,n, bes_index(datasb%iv_sourcessteps)
+    integer bes_ix,n, bes_index(privateindexes%iv_sourcessteps)
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
@@ -511,7 +511,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     !     Find the position in the xx table for the x correponding to each
     !     timestep
 
-    do j=1,datasb%iv_sourcessteps !Precompute arrays for this k
+    do j=1,privateindexes%iv_sourcessteps !Precompute arrays for this k
         xf=abs(privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(j)))
         ! in case need to use a statein as input
         !tocompare=BessRanges%IndexOf(xf)
@@ -558,11 +558,11 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
             !This is the innermost loop, so we separate the no lensing scalar case to optimize it
             startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                 datasb%s_npoints, datasb%s_Highest, tmin)
-            endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
+            endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                 datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax)) 
             ! in case need to use a statein as input
             !tocompare = State%TimeSteps%IndexOf(tmin)
-            !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
+            !tocompare = min(privateindexes%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
             do n= startloopidx,endloopidx
                 a2=aa(n)
                 bes_ix=bes_index(n)
@@ -584,11 +584,11 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     datasb%s_num_redshiftwindows==0) then
                     startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                        datasb%s_npoints, datasb%s_Highest, tmin)
-                    endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
+                    endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                        datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
                     ! in case need to use a statein as input
                     !tocompare = State%TimeSteps%IndexOf(tmin)
-                    !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
+                    !tocompare = min(privateindexes%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                     do n=startloopidx,endloopidx
                        !Full Bessel integration
                        a2=aa(n)
@@ -628,11 +628,11 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     if (datasb%cp_custom_sources_nam_custom==0) then
                         startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                             datasb%s_npoints, datasb%s_Highest, tmin)   
-                        endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
+                        endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                             datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
                         ! in case need to use a statein as input
                         !tocompare = State%TimeSteps%IndexOf(tmin)
-                        !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
+                        !tocompare = min(privateindexes%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                         do n= startloopidx,endloopidx
                            a2=aa(n)
                            bes_ix=bes_index(n)
@@ -654,11 +654,11 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     else
                         startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                             datasb%s_npoints, datasb%s_Highest, tmin)
-                        endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
+                        endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                             datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
                         ! in case need to use a statein as input
                         !tocompare = State%TimeSteps%IndexOf(tmin)
-                        !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
+                        !tocompare = min(privateindexes%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                         do n=startloopidx,endloopidx
                            a2=aa(n)
                            bes_ix=bes_index(n)
@@ -707,11 +707,11 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                         datasb%s_npoints, datasb%s_Highest, &
                         datasb%s_tau_start_redshiftwindows)
-                    endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
+                    endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
                         datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
                     ! in case need to use a statein as input
                     !tocompare = State%TimeSteps%IndexOf(State%ThermoData%tau_start_redshiftwindows)
-                    !tocompare = min(datasb%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
+                    !tocompare = min(privateindexes%iv_sourcessteps,State%TimeSteps%IndexOf(tmax))
                     do n=startloopidx,endloopidx
                         !Full Bessel integration
                         a2 = aa(n)

@@ -103,18 +103,19 @@
         Type(TRange), dimension(:), allocatable :: b_r
 
         ! other scalars 
-        integer :: iv_sourcessteps, ttsources_sourcenum, &
+        integer :: ttsources_sourcenum, &
             cp_custom_sources_nam_custom, &
             ttsources_non_custom_sources_num, &
             cp_st_limber_phi_lmin
         double precision :: cp_accuracy_boost, &
             cp_accuracy_bessintboost, cp_accuracy_liber_boost
-        logical :: cp_want_tensors , cp_want_scalars, cp_want_vectors, &
-            cp_want_cmb, cp_want_cmp_lensing, cp_st_limber_windows
+        logical :: cp_want_tensors , cp_want_scalars, &
+            cp_want_vectors, cp_want_cmb, & 
+            cp_want_cmp_lensing, cp_st_limber_windows
     end type datastatebessel
 
     type, public :: PrivateIdxs
-        integer :: iv_q_ix, iv_q, iv_dq
+        integer :: iv_q_ix, iv_q, iv_dq, iv_sourcessteps
     end type PrivateIdxs
 
     type, public :: IntegrationVars
@@ -399,7 +400,7 @@
         !datasb%iv_q_ix = IV%q_ix
         !datasb%iv_q = IV%q
         !datasb%iv_dq = IV%dq
-        datasb%iv_sourcessteps = IV%SourceSteps
+        !datasb%iv_sourcessteps = IV%SourceSteps
         datasb%ttsources_sourcenum = ThisSources%SourceNum
         datasb%cp_custom_sources_nam_custom = CP%CustomSources%num_custom_sources
         datasb%ttsources_non_custom_sources_num = ThisSources%NonCustomSourceNum
@@ -568,6 +569,8 @@
         deallocate(ScaledSrc)
         nullify(ScaledSrc)
     end if
+    
+    stop
 
     !Final calculations for CMB output unless want the Cl transfer functions only.
     if (.not. State%OnlyTransfer .and. global_error_flag==0) &
