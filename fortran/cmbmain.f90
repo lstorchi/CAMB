@@ -427,6 +427,7 @@
 
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
+        !print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
         print *, "                allocated ThisCT%ls%l: ", allocated(ThisCT%ls%l), " size " , size(ThisCT%ls%l)
         print *, "         allocated ThisCT%delta_p_l_k: ", allocated(ThisCT%delta_p_l_k), " size " , size(ThisCT%delta_p_l_k)
         print *, "allocated ThisSources%Evolve_q%points: ", allocated(ThisSources%Evolve_q%points), " size " , size(ThisSources%Evolve_q%points)
@@ -435,7 +436,6 @@
         print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
         print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
         print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
-        print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
 
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
