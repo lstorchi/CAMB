@@ -1,6 +1,7 @@
 #CAMB Makefile
 NVCOMP=yes
 OPENACC=no
+OPENMP=no
 ACTIVECOMPAREINDEXOF=no
 ACTIVEDEBUGFLAGS=yes
 NONNATIVE=1
@@ -114,8 +115,11 @@ else
  
       COMPILER = gfortran
       F90C     = gfortran
-      #COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
-      COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 
+      ifeq "$(OPENMP)" "yes"
+        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+      else
+        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4
+      endif
       # Using -ffast-math causes differences between Debug and Release configurations.
       ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
         FFLAGS = -O0 -g $(COMMON_FFLAGS)

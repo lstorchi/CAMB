@@ -227,6 +227,7 @@ subroutine SourceToTransfers(datasb, &
     logical :: WantLateTimein
     logical :: full_bessel_integrationin, do_bispectrumin, DebugEvolutionin
     type(datastatebessel) :: datasb   
+    type(PrivateIdxs) :: privateindexes
 
     !call IntegrationVars_Init(IV, datasb)
     ! to avoid a call 
@@ -238,24 +239,26 @@ subroutine SourceToTransfers(datasb, &
     IV%Source_q(datasb%s_npoints,:) = 0
     IV%Source_q(datasb%s_npoints-1,:) = 0
 
-    datasb%iv_q_ix = q_ix
-    datasb%iv_q = ThisCT%q%points(q_ix)
-    datasb%iv_dq= ThisCT%q%dpoints(q_ix)
+    privateindexes%iv_q_ix = q_ix
+    privateindexes%iv_q = ThisCT%q%points(q_ix)
+    privateindexes%iv_dq = ThisCT%q%dpoints(q_ix)
 
     call InterpolateSources(IV, ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-      datasb, DebugEvolutionin)
+      datasb, DebugEvolutionin, privateindexes)
 
     call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-            datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+            datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
+            privateindexes)
 
 end subroutine SourceToTransfers
 
 
 subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
-    WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin)
+    WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
+    privateindexes)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -274,14 +277,15 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     logical :: WantLateTimein
     type(datastatebessel) :: datasb
     logical :: DebugEvolutionin
+    type(PrivateIdxs) :: privateindexes
 
     !     finding position of k in table Evolve_q to do the interpolation.
 
     !Can't use the following in closed case because regions are not set up (only points)
-    !           klo = min(ThisSourcesin%Evolve_q%npoints-1,ThisSourcesin%Evolve_q%IndexOf(datasb%iv_q))
+    !           klo = min(ThisSourcesin%Evolve_q%npoints-1,ThisSourcesin%Evolve_q%IndexOf(privateindexes%iv_q))
     !This is a bit inefficient, but thread safe
     klo=1
-    do while ((datasb%iv_q > ThisSourcesin%Evolve_q%points(klo+1)).and.&
+    do while ((privateindexes%iv_q > ThisSourcesin%Evolve_q%points(klo+1)).and.&
         (klo < (ThisSourcesin%Evolve_q%npoints-1)))
         klo=klo+1
     end do
@@ -289,48 +293,58 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     khi=klo+1
 
     ho=ThisSourcesin%Evolve_q%points(khi)-ThisSourcesin%Evolve_q%points(klo)
-    a0=(ThisSourcesin%Evolve_q%points(khi)-datasb%iv_q)/ho
-    b0=(datasb%iv_q-ThisSourcesin%Evolve_q%points(klo))/ho
+    a0=(ThisSourcesin%Evolve_q%points(khi)-privateindexes%iv_q)/ho
+    b0=(privateindexes%iv_q-ThisSourcesin%Evolve_q%points(klo))/ho
     ho2o6 = ho**2/6
     a03=(a0**3-a0)
     b03=(b0**3-b0)
     datasb%iv_sourcessteps = 0
+    print *, "privateindexes%iv_q : ", privateindexes%iv_q
+    print *, "a0: ", a0
+    print *, "b0: ", b0
+    print *, "ho: ", ho
+    print *, "ho2o6: ", ho2o6
+    print *, "a03: ", a03
+    print *, "b03: ", b03
+    print *, "klo: ", klo
+    print *, "khi: ", khi
 
     !Interpolating the source as a function of time for the present
     !wavelength.
     step=2
     do i=2, datasb%s_npoints
-        xf=datasb%iv_q*(datasb%s_tau0-datasb%s_points(i))
+        xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
         
         if (datasb%cp_want_tensors) then
-            if (datasb%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
+            if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
                     b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
-                IV%Source_q(i,:) = 0
+                IV%Source_q(i,:) = 0.0_dl
             end if
         end if
 
         if (datasb%cp_want_vectors) then
-            if (datasb%iv_q*datasb%s_points(i) < max_etak_vectorin.and. xf > 1.e-8_dl) then
+            if (privateindexes%iv_q*datasb%s_points(i) < max_etak_vectorin.and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i) + b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
-                IV%Source_q(i,:) = 0
+                IV%Source_q(i,:) = 0.0_dl
             end if
         end if
 
         if (datasb%cp_want_scalars) then
-            if ((DebugEvolutionin .or. WantLateTimein .or. datasb%iv_q*datasb%s_points(i) < max_etak_scalarin) &
+            if ((DebugEvolutionin .or. WantLateTimein .or. &
+                privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
                 step=i
                 IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
                     b03 * ddScaledSrcin(khi,:,i)) * ho2o6
             else
-                IV%Source_q(i,:) = 0
+                IV%Source_q(i,:) = 0.0_dl
             end if
         end if
     end do
@@ -347,7 +361,7 @@ end subroutine InterpolateSources
 
 subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb,xlimfracin,xlimminin,ajlin,ajlprin) !for particular wave number q
+    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes) !for particular wave number q
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -367,8 +381,9 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     Type(TTimeSources) :: ThisSourcesin
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasb
+    type(PrivateIdxs) :: privateindexes
 
-    nu=datasb%iv_q*datasb%s_curvature_radius
+    nu=privateindexes%iv_q*datasb%s_curvature_radius
     sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
 
     if (datasb%s_closed) then
@@ -404,9 +419,9 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     end if
 
     if (datasb%s_flat) then
-    !    call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
-    !      full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    !      datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+        call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
+          full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+          datasb,xlimfracin,xlimminin,ajlin,ajlprin)
     else
         print * , "not yet fully ported"
         stop
@@ -431,7 +446,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 !    use precision
 !    use model
 !    use results
-
+#ifdef USEOMP
+    use omp_lib
+#endif
     implicit none
 
     ! input 
@@ -457,6 +474,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
+#ifdef USEOMP
+    integer :: omp_thread_num, thread_id
+#endif
 
 !    INTERFACE
 !        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
@@ -477,6 +497,13 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     !integer :: tocompare
     integer :: startloopidx, endloopidx
 
+#ifdef USEOMP
+    omp_thread_num = omp_get_max_threads()
+    if (omp_thread_num > 1) then
+        thread_id = omp_get_thread_num()
+    end if
+#endif
+
     BessIntBoost = datasb%cp_accuracy_boost*datasb%cp_accuracy_bessintboost
     custom_source_off = datasb%s_num_redshiftwindows + datasb%s_num_extra_redshiftwindows + 4
 
@@ -484,7 +511,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     !     timestep
 
     do j=1,datasb%iv_sourcessteps !Precompute arrays for this k
-        xf=abs(datasb%iv_q*(datasb%s_tau0-datasb%s_points(j)))
+        xf=abs(privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(j)))
         ! in case need to use a statein as input
         !tocompare=BessRanges%IndexOf(xf)
         
@@ -511,10 +538,10 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
             if (datasb%s_num_redshiftwindows>0 .and. datasb%cp_want_scalars) then
                 xlmax1=80*ThisCT%ls%l(j)*8*BessIntBoost !Have to be careful if sharp spikes due to late time sources
             end if
-            tmin=datasb%s_tau0-xlmax1/datasb%iv_q
+            tmin=datasb%s_tau0-xlmax1/privateindexes%iv_q
             tmin=max(datasb%s_points(2),tmin)
         end if
-        tmax=datasb%s_tau0-xlim/datasb%iv_q
+        tmax=datasb%s_tau0-xlim/privateindexes%iv_q
         tmax=min(datasb%s_tau0,tmax)
         tmin=max(datasb%s_points(2),tmin)
         if (.not. datasb%cp_want_cmb .and. .not. datasb%cp_want_cmp_lensing) &
@@ -548,11 +575,12 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
             end do
         else
             qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/datasb%s_tau0*1.2
-            DoInt = .not. datasb%cp_want_scalars .or. datasb%iv_q < qmax_int
+            DoInt = .not. datasb%cp_want_scalars .or. privateindexes%iv_q < qmax_int
             !Do integral if any useful contribution to the CMB, or large scale effects
 
             if (DoInt) then
-                 if (datasb%cp_custom_sources_nam_custom==0 .and. datasb%s_num_redshiftwindows==0) then
+                 if (datasb%cp_custom_sources_nam_custom==0 .and. & 
+                    datasb%s_num_redshiftwindows==0) then
                     startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                        datasb%s_npoints, datasb%s_Highest, tmin)
                     endloopidx = min(datasb%iv_sourcessteps,statbesseindexof (datasb%s_count, &
@@ -564,7 +592,18 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                        !Full Bessel integration
                        a2=aa(n)
                        bes_ix=bes_index(n)
-
+                      
+#ifdef USEOMP
+                      !print *, "omp_thread_num: ", omp_thread_num
+                      !print *, "thrad_id: ", thread_id
+#endif
+                      !print *, "fac: ", shape(fac)
+                      !print *, "n: ", n
+                      !print *, "ajlin, ajlprin"
+                      !print *, shape(ajlin)
+                      !print *, shape(ajlprin)
+                      !print *, "bes_ix: ", bes_ix
+                      !print *, "j: ", j
                        J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
                            *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                        J_l = J_l*datasb%s_dpoints(n)
@@ -646,7 +685,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
             end if
             if (.not. DoInt .or. UseLimberGPU(ThisCT%ls%l(j), datasb) .and. datasb%cp_want_scalars) then
                 !Limber approximation for small scale lensing (better than poor version of above integral)
-                xf = datasb%s_tau0-(ThisCT%ls%l(j)+0.5_dl)/datasb%iv_q
+                xf = datasb%s_tau0-(ThisCT%ls%l(j)+0.5_dl)/privateindexes%iv_q
                 if (xf < datasb%s_highest .and. xf > datasb%s_lowest) then
                     n=statbesseindexof (datasb%s_count, datasb%s_R, &
                         datasb%s_npoints, datasb%s_Highest, xf)
@@ -655,7 +694,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     !n=statindexof(xf)
                     xf= (xf-datasb%s_points(n))/(datasb%s_points(n+1)-datasb%s_points(n))
                     sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
-                        sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/datasb%iv_q
+                        sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/privateindexes%iv_q
                 else
                     sums(3)=0
                 end if
@@ -691,7 +730,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
             end if
         end if
 
-        ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,datasb%iv_q_ix) + sums
+        ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
      end do
 
 end subroutine DoFlatIntegration
