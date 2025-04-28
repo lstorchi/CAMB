@@ -281,6 +281,8 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     logical :: DebugEvolutionin
     type(PrivateIdxs) :: privateindexes
 
+    character(len=30) :: filename
+
     !     finding position of k in table Evolve_q to do the interpolation.
 
     !Can't use the following in closed case because regions are not set up (only points)
@@ -301,15 +303,19 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     a03=(a0**3-a0)
     b03=(b0**3-b0)
     privateindexes%iv_sourcessteps = 0
-    !print *, "privateindexes%iv_q : ", privateindexes%iv_q
-    !print *, "a0: ", a0
-    !print *, "b0: ", b0
-    !print *, "ho: ", ho
-    !print *, "ho2o6: ", ho2o6
-    !print *, "a03: ", a03
-    !print *, "b03: ", b03
-    !print *, "klo: ", klo
-    !print *, "khi: ", khi
+    write(filename, '(a, i0, a)') 'data_file_', privateindexes%iv_q_ix, '.dat'
+    open(unit=101, file=trim(filename), status='replace')
+    write(101, *) " privateindexes%iv_q_ix: ", privateindexes%iv_q_ix
+    write(101, *) "    privateindexes%iv_q: ", privateindexes%iv_q
+    write(101, *) "                     a0: ", a0
+    write(101, *) "                     b0: ", b0
+    write(101, *) "                     ho: ", ho
+    write(101, *) "                  ho2o6: ", ho2o6
+    write(101, *) "                    a03: ", a03
+    write(101, *) "                    b03: ", b03
+    write(101, *) "                    klo: ", klo
+    write(101, *) "                    khi: ", khi
+    close(101)
 
     !Interpolating the source as a function of time for the present
     !wavelength.

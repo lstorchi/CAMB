@@ -557,7 +557,7 @@
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
         write(*,*) 'Time taken for main task:', elapsed_time
-       !do i=1,size(bes_ix_check)
+        !do i=1,size(bes_ix_check)
         !    write(*,*) 'bes_ix check:', i, " ==> ", bes_ix_check(i)
         !end do
         !deallocate(bes_ix_check)
