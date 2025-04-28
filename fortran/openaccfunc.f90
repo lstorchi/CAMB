@@ -320,7 +320,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
                 step=i
                 IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
                     b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
-                    b03*ddScaledSrcin(khi,:,i)) *ho2o
+                    b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
                 IV%Source_q(i,:) = 0.0_dl
             end if
@@ -379,7 +379,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     real(dl) nu
     real(dl) :: sixpibynu
     Type(TTimeSources) :: ThisSourcesin
-    logical :: full_bessel_integratioiv_sourcesstepsnin, do_bispectrumin
+    logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasb
     type(PrivateIdxs) :: privateindexes
 

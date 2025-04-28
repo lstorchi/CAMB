@@ -494,9 +494,9 @@
 #else
         !$OMP END PARALLEL DO
 #endif
-        open(100, file='iv_sourcessteps.txt', status='replace')
-        write(100,*) datasb%iv_sourcessteps
-        close(100)
+        !open(100, file='iv_sourcessteps.txt', status='replace')
+        !write(100,*) %iv_sourcessteps
+        !close(100)
 
         open(100, file='ddScaledSrc.txt', status='replace')
         lb1 = lbound(ddScaledSrc, 1)
