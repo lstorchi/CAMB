@@ -396,13 +396,13 @@
         datasb%b_highest = BessRanges%Highest
         datasb%b_lowest = BessRanges%Lowest
 
-        datasb%iv_q_ix = IV%q_ix
+        !datasb%iv_q_ix = IV%q_ix
+        !datasb%iv_q = IV%q
+        !datasb%iv_dq = IV%dq
         datasb%iv_sourcessteps = IV%SourceSteps
         datasb%ttsources_sourcenum = ThisSources%SourceNum
         datasb%cp_custom_sources_nam_custom = CP%CustomSources%num_custom_sources
         datasb%ttsources_non_custom_sources_num = ThisSources%NonCustomSourceNum
-        datasb%iv_q = IV%q
-        datasb%iv_dq = IV%dq
         datasb%cp_accuracy_boost = CP%Accuracy%AccuracyBoost
         datasb%cp_accuracy_bessintboost = CP%Accuracy%BessIntBoost
         datasb%cp_want_tensors = CP%WantTensors

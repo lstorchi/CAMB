@@ -247,10 +247,10 @@ subroutine SourceToTransfers(datasb, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasb, DebugEvolutionin, privateindexes)
 
-    call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
-            full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-            datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
-            privateindexes)
+    !call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
+    !        full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
+    !        datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
+    !        privateindexes)
 
 end subroutine SourceToTransfers
 
@@ -299,15 +299,15 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     a03=(a0**3-a0)
     b03=(b0**3-b0)
     datasb%iv_sourcessteps = 0
-    print *, "privateindexes%iv_q : ", privateindexes%iv_q
-    print *, "a0: ", a0
-    print *, "b0: ", b0
-    print *, "ho: ", ho
-    print *, "ho2o6: ", ho2o6
-    print *, "a03: ", a03
-    print *, "b03: ", b03
-    print *, "klo: ", klo
-    print *, "khi: ", khi
+   !print *, "privateindexes%iv_q : ", privateindexes%iv_q
+   !print *, "a0: ", a0
+   !print *, "b0: ", b0
+   !print *, "ho: ", ho
+   !print *, "ho2o6: ", ho2o6
+   !print *, "a03: ", a03
+   !print *, "b03: ", b03
+   !print *, "klo: ", klo
+   !print *, "khi: ", khi
 
     !Interpolating the source as a function of time for the present
     !wavelength.
@@ -421,7 +421,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     if (datasb%s_flat) then
         call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-          datasb,xlimfracin,xlimminin,ajlin,ajlprin)
+          datasb,xlimfracin,xlimminin,ajlin,ajlprin,privateindexes)
     else
         print * , "not yet fully ported"
         stop
@@ -437,7 +437,7 @@ end subroutine DoSourceIntegration
 
 subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb, xlimfracin, xlimminin, ajlin, ajlprin)
+    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes)
 #ifdef USEACC
 !$ACC ROUTINE SEQ
 #endif
@@ -461,6 +461,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     type(datastatebessel) :: datasb
     real(dl) xlimfracin, xlimminin
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
+    type(PrivateIdxs) :: privateindexes
 
     ! local vars    
     integer j
