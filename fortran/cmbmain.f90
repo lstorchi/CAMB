@@ -467,13 +467,16 @@
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
         !$acc   copyin(DebugEvolutionin)
-#else
+#endif
+#ifdef USEOMP
         !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IV), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
+#ifndef USEACC
             allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
             if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
             ! do not think so but maybe I will need to zerpos the allocated arrays
+#endif            
 !#ifdef USEACC
 !            CALL Print_From_ACC("Index:", q_ix)
 !#else
@@ -485,8 +488,10 @@
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
               xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution)
               !, bes_ix_check)
+#ifndef USEACC
             if (.not.State%flat) deallocate(IV%ddSource_q)
             deallocate(IV%Source_q)
+#endif
         end do !q loop
 #ifdef USEACC
         !$ACC END PARALLEL LOOP
@@ -542,10 +547,6 @@
         !open(100, file='ddSource_q.txt', status='replace')
         !write(100,*) IV%ddSource_q
         !close(100)
- 
- 
-  
- 
  
         !open(100, file='s_points.txt', status='replace')
         !write(100,*) datasb%s_points
