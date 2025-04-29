@@ -205,7 +205,8 @@ subroutine SourceToTransfers(datasb, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
     do_bispectrumin, max_bessels_l_indexin, IV, &
-    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin)
+    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin, &
+    IVSource_q)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -228,6 +229,7 @@ subroutine SourceToTransfers(datasb, &
     logical :: full_bessel_integrationin, do_bispectrumin, DebugEvolutionin
     type(datastatebessel) :: datasb   
     type(PrivateIdxs) :: privateindexes
+    double precision , allocatable, dimension(:,:) :: IVSource_q
 
     !call IntegrationVars_Init(IV, datasb)
     ! to avoid a call 
@@ -235,9 +237,9 @@ subroutine SourceToTransfers(datasb, &
     !print *, "allocated ajlin: ", allocated(ajlin)
     !print *, "allocated ajlprin: ", allocated(ajlprin)
 
-    IV%Source_q(1,:)=0
-    IV%Source_q(datasb%s_npoints,:) = 0
-    IV%Source_q(datasb%s_npoints-1,:) = 0
+    IVSource_q(1,:)=0
+    IVSource_q(datasb%s_npoints,:) = 0
+    IVSource_q(datasb%s_npoints-1,:) = 0
 
     privateindexes%iv_q_ix = q_ix
     privateindexes%iv_q = ThisCT%q%points(q_ix)
@@ -247,12 +249,12 @@ subroutine SourceToTransfers(datasb, &
 
     call InterpolateSources(IV, ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-      datasb, DebugEvolutionin, privateindexes)
+      datasb, DebugEvolutionin, privateindexes, IVSource_q)
 
     call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
             datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
-            privateindexes)
+            privateindexes, IVSource_q)
 
 end subroutine SourceToTransfers
 
@@ -260,7 +262,7 @@ end subroutine SourceToTransfers
 subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
-    privateindexes)
+    privateindexes, IVSource_q)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -281,9 +283,9 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     logical :: DebugEvolutionin
     type(PrivateIdxs) :: privateindexes
     integer :: ixunit
+    double precision , allocatable, dimension(:,:) :: IVSource_q
 
-    character(len=30) :: filename
-
+    !character(len=30) :: filename
     !     finding position of k in table Evolve_q to do the interpolation.
 
     !Can't use the following in closed case because regions are not set up (only points)
@@ -328,21 +330,21 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
         if (datasb%cp_want_tensors) then
             if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
+                IVSource_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
                     b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
-                IV%Source_q(i,:) = 0.0_dl
+                IVSource_q(i,:) = 0.0_dl
             end if
         end if
 
         if (datasb%cp_want_vectors) then
             if (privateindexes%iv_q*datasb%s_points(i) < max_etak_vectorin.and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) =a0*ScaledSrcin(klo,:,i) + b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
+                IVSource_q(i,:) =a0*ScaledSrcin(klo,:,i) + b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
-                IV%Source_q(i,:) = 0.0_dl
+                IVSource_q(i,:) = 0.0_dl
             end if
         end if
 
@@ -351,27 +353,29 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
                 privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
                 step=i
-                IV%Source_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
                     b03 * ddScaledSrcin(khi,:,i)) * ho2o6
             else
-                IV%Source_q(i,:) = 0.0_dl
+                IVSource_q(i,:) = 0.0_dl
             end if
         end if
     end do
     privateindexes%iv_sourcessteps = step
 
-    if (.not.datasb%s_flat) then
-        do i=1, datasb%ttsources_sourcenum
-            call spline_def_local(datasb%s_points,IV%Source_q(:,i),datasb%s_npoints,&
-                IV%ddSource_q(:,i))
-        end do
-    end if
+    ! only non flat 
+    !if (.not.datasb%s_flat) then
+    !    do i=1, datasb%ttsources_sourcenum
+    !        call spline_def_local(datasb%s_points,IVSource_q(:,i),datasb%s_npoints,&
+    !            IVddSource_q(:,i))
+    !    end do
+    !end if
  
 end subroutine InterpolateSources
 
 subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes) !for particular wave number q
+    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
+    IVSource_q) !for particular wave number q
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -392,6 +396,8 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasb
     type(PrivateIdxs) :: privateindexes
+    double precision , allocatable, dimension(:,:) :: IVSource_q
+
 
     nu=privateindexes%iv_q*datasb%s_curvature_radius
     sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
@@ -431,7 +437,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     if (datasb%s_flat) then
         call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-          datasb,xlimfracin,xlimminin,ajlin,ajlprin,privateindexes)
+          datasb,xlimfracin,xlimminin,ajlin,ajlprin,privateindexes, IVSource_q)
     else
         print * , "not yet fully ported"
         stop
@@ -447,7 +453,8 @@ end subroutine DoSourceIntegration
 
 subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes)
+    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
+    IVSource_q)
 #ifdef USEACC
 !$ACC ROUTINE SEQ
 #endif
@@ -472,6 +479,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     real(dl) xlimfracin, xlimminin
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     type(PrivateIdxs) :: privateindexes
+    double precision , allocatable, dimension(:,:) :: IVSource_q
 
     ! local vars    
     integer j
@@ -581,8 +589,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
 
                 J_l = J_l*datasb%s_dpoints(n)
-                sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                sums(2) = sums(2) + IV%Source_q(n,2)*J_l
+                sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                sums(2) = sums(2) + IVSource_q(n,2)*J_l
             end do
         else
             qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/datasb%s_tau0*1.2
@@ -620,9 +628,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                        J_l = J_l*datasb%s_dpoints(n)
 
                        !The unwrapped form is faster
-                       sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                       sums(2) = sums(2) + IV%Source_q(n,2)*J_l
-                       sums(3) = sums(3) + IV%Source_q(n,3)*J_l
+                       sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                       sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                       sums(3) = sums(3) + IVSource_q(n,3)*J_l
                    end do
                 else
                     if (datasb%s_num_redshiftwindows>0) then
@@ -652,12 +660,12 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                            J_l = J_l*datasb%s_dpoints(n)
 
                            !The unwrapped form is faster
-                           sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                           sums(2) = sums(2) + IV%Source_q(n,2)*J_l
-                           sums(3) = sums(3) + IV%Source_q(n,3)*J_l
+                           sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                           sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                           sums(3) = sums(3) + IVSource_q(n,3)*J_l
                            if (n >= nwin) then
                                do s_ix = 4, datasb%ttsources_sourcenum
-                                   sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
+                                   sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l
                                end do
                            end if
                        end do
@@ -678,17 +686,17 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                            J_l = J_l*datasb%s_dpoints(n)
 
                            !The unwrapped form is faster
-                           sums(1) = sums(1) + IV%Source_q(n,1)*J_l
-                           sums(2) = sums(2) + IV%Source_q(n,2)*J_l
-                           sums(3) = sums(3) + IV%Source_q(n,3)*J_l
+                           sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                           sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                           sums(3) = sums(3) + IVSource_q(n,3)*J_l
                            sums(custom_source_off) = sums(custom_source_off) +  IV%Source_q(n,custom_source_off)*J_l
                            if (n >= nwin) then
                                do s_ix = 4, datasb%ttsources_non_custom_sources_num
-                                   sums(s_ix) = sums(s_ix) + IV%Source_q(n,s_ix)*J_l
+                                   sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l
                                end do
                            end if
                            do s_ix = custom_source_off+1, custom_source_off+datasb%cp_custom_sources_nam_custom -1
-                               sums(s_ix) = sums(s_ix)  + IV%Source_q(n,s_ix)*J_l
+                               sums(s_ix) = sums(s_ix)  + IVSource_q(n,s_ix)*J_l
                            end do
                        end do
                     end if
@@ -704,7 +712,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                     !tocompare=State%TimeSteps%IndexOf(xf)
                     !n=statindexof(xf)
                     xf= (xf-datasb%s_points(n))/(datasb%s_points(n+1)-datasb%s_points(n))
-                    sums(3) = (IV%Source_q(n,3)*(1-xf) + xf*IV%Source_q(n+1,3))*&
+                    sums(3) = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
                         sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/privateindexes%iv_q
                 else
                     sums(3)=0
@@ -732,9 +740,9 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                             ajlprin(bes_ix + 1, j)) * fac(n)) !cubic spline
                         J_l = J_l * datasb%s_dpoints(n)
 
-                        sums(4) = sums(4) + IV%Source_q(n, 4) * J_l
+                        sums(4) = sums(4) + IVSource_q(n, 4) * J_l
                         do s_ix = 5, datasb%ttsources_non_custom_sources_num
-                            sums(s_ix) = sums(s_ix) + IV%Source_q(n, s_ix) * J_l
+                            sums(s_ix) = sums(s_ix) + IVSource_q(n, s_ix) * J_l
                         end do
                     end do
                 end if

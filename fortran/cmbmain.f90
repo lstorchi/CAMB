@@ -306,6 +306,9 @@
     logical :: DebugEvolutionin
     !double precision , allocatable, dimension(:) :: bes_ix_check
     integer :: i, j, k, lb1, lb2, lb3, ub1, ub2, ub3
+    double precision , allocatable, dimension(:,:) :: IVSource_q
+    !double precision , allocatable, dimension(:,:) :: IVddSource_q
+
 
     full_bessel_integrationin = full_bessel_integration
 
@@ -453,8 +456,7 @@
         ! the methods as standalone function 
         ! should use something like  ACC PARALLEL LOOP GANG, VECTOR(4) 
 
-        !$ACC PARALLEL LOOP copy(IV%Source_q, IV%ddSource_q) & 
-        !$acc   copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
+        !$ACC PARALLEL LOOP  copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
         !$acc   copy(ThisSources%Evolve_q%points) &
         !$acc   copy(datasb%s_points, datasb%s_dpoints, &
         !$acc        datasb%b_points, datasb%s_r, datasb%b_r) &
@@ -466,16 +468,19 @@
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
-        !$acc   copyin(DebugEvolutionin)
+        !$acc   copyin(DebugEvolutionin, State%TimeSteps%npoints) &
+        !$acc   copyin(ThisSources%SourceNum)
 #endif
 #ifdef USEOMP
-        !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IV), SCHEDULE(STATIC,4)
+        !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IVSource_q), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
 #ifndef USEACC
-            allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
-            if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+            allocate(IVSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+            ! if not flat we need also IV%ddSource_q
             ! do not think so but maybe I will need to zerpos the allocated arrays
+#else
+            !$acc enter data create(IVSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
 #endif            
 !#ifdef USEACC
 !            CALL Print_From_ACC("Index:", q_ix)
@@ -486,11 +491,12 @@
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
-              xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution)
-              !, bes_ix_check)
+              xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution, IVSource_q)
+              !, bes_ix_check, IVSource_q, IVddSource_q)
 #ifndef USEACC
-            if (.not.State%flat) deallocate(IV%ddSource_q)
-            deallocate(IV%Source_q)
+            deallocate(IVSource_q)
+#else
+            !$acc exit data delete (IVSource_q)
 #endif
         end do !q loop
 #ifdef USEACC
@@ -2602,3 +2608,4 @@
 
     end module CAMBmain
 
+! START OPENACC 
