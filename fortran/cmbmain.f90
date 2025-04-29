@@ -468,8 +468,7 @@
         !$acc   copy(ThisCT%delta_p_l_k) &
         !$acc   copyin(DebugEvolutionin)
 #else
-        !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
-        !OMP PARALLEL DO DEFAULT(SHARED) 
+        !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IV), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
             allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
