@@ -423,9 +423,6 @@
             " shape: ", shape(ajlpr)
 
         ! I should allocate this only in the GPU
-        allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
-        if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
-
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
         !print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
@@ -475,6 +472,8 @@
         !OMP PARALLEL DO DEFAULT(SHARED) 
 #endif        
         do q_ix=1,ThisCT%q%npoints
+            allocate(IV%Source_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+            if (.not.State%flat) allocate(IV%ddSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
             ! do not think so but maybe I will need to zerpos the allocated arrays
 !#ifdef USEACC
 !            CALL Print_From_ACC("Index:", q_ix)
@@ -487,6 +486,8 @@
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
               xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution)
               !, bes_ix_check)
+            if (.not.State%flat) deallocate(IV%ddSource_q)
+            deallocate(IV%Source_q)
         end do !q loop
 #ifdef USEACC
         !$ACC END PARALLEL LOOP
@@ -531,17 +532,17 @@
         end do
         close(100)
 
-        open(100, file='Source_q.txt', status='replace')
-        do i=1, State%TimeSteps%npoints
-            do j=1, ThisSources%SourceNum
-                write(100,*) i, j, IV%Source_q(i,j)
-            end do  
-        end do
-        close(100)
+        !open(100, file='Source_q.txt', status='replace')
+        !do i=1, State%TimeSteps%npoints
+        !    do j=1, ThisSources%SourceNum
+        !        write(100,*) i, j, IV%Source_q(i,j)
+        !    end do  
+        !end do
+        !close(100)
 
-        open(100, file='ddSource_q.txt', status='replace')
-        write(100,*) IV%ddSource_q
-        close(100)
+        !open(100, file='ddSource_q.txt', status='replace')
+        !write(100,*) IV%ddSource_q
+        !close(100)
 
         open(100, file='s_points.txt', status='replace')
         write(100,*) datasb%s_points
@@ -551,8 +552,6 @@
         write(100,*) datasb%s_npoints
         close(100)
  
-        if (.not.State%flat) deallocate(IV%ddSource_q)
-        deallocate(IV%Source_q)
 ! OPEANACC
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
