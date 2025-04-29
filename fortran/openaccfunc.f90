@@ -305,19 +305,19 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     b03=(b0**3-b0)
     ixunit = privateindexes%iv_q_ix
     privateindexes%iv_sourcessteps = 0
-    write(filename, '(a, i0, a)') 'data_file_', privateindexes%iv_q_ix, '.dat'
-    open(unit=ixunit, file=trim(filename), status='replace')
-    write(ixunit, *) " privateindexes%iv_q_ix: ", privateindexes%iv_q_ix
-    write(ixunit, *) "    privateindexes%iv_q: ", privateindexes%iv_q
-    write(ixunit, *) "                     a0: ", a0
-    write(ixunit, *) "                     b0: ", b0
-    write(ixunit, *) "                     ho: ", ho
-    write(ixunit, *) "                  ho2o6: ", ho2o6
-    write(ixunit, *) "                    a03: ", a03
-    write(ixunit, *) "                    b03: ", b03
-    write(ixunit, *) "                    klo: ", klo
-    write(ixunit, *) "                    khi: ", khi
-    close(ixunit)
+    !write(filename, '(a, i0, a)') 'data_file_', privateindexes%iv_q_ix, '.dat'
+    !open(unit=ixunit, file=trim(filename), status='replace')
+    !write(ixunit, *) " privateindexes%iv_q_ix: ", privateindexes%iv_q_ix
+    !write(ixunit, *) "    privateindexes%iv_q: ", privateindexes%iv_q
+    !write(ixunit, *) "                     a0: ", a0
+    !write(ixunit, *) "                     b0: ", b0
+    !write(ixunit, *) "                     ho: ", ho
+    !write(ixunit, *) "                  ho2o6: ", ho2o6
+    !write(ixunit, *) "                    a03: ", a03
+    !write(ixunit, *) "                    b03: ", b03
+    !write(ixunit, *) "                    klo: ", klo
+    !write(ixunit, *) "                    khi: ", khi
+    !close(ixunit)
 
     !Interpolating the source as a function of time for the present
     !wavelength.
