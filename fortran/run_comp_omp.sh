@@ -1,4 +1,4 @@
-export filelist="out ddScaledSrc.txt test_params.ini iv_sourcessteps.txt ScaledSrc.txt s_points.txt Source_q.txt s_npoints.txt ddSource_q.txt test_scalCls.dat test_scalarCovCls.dat test_lensedCls.dat test_lenspotentialCls.dat"
+export filelist="data_file_*.dat out ddScaledSrc.txt test_params.ini iv_sourcessteps.txt ScaledSrc.txt s_points.txt Source_q.txt s_npoints.txt ddSource_q.txt test_scalCls.dat test_scalarCovCls.dat test_lensedCls.dat test_lenspotentialCls.dat"
 if [ -d serial ]; then
   cd serial
   rm -f $filelist

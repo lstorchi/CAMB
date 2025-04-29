@@ -280,6 +280,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     type(datastatebessel) :: datasb
     logical :: DebugEvolutionin
     type(PrivateIdxs) :: privateindexes
+    integer :: ixunit
 
     character(len=30) :: filename
 
@@ -302,20 +303,21 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     ho2o6 = ho**2/6
     a03=(a0**3-a0)
     b03=(b0**3-b0)
+    ixunit = privateindexes%iv_q_ix
     privateindexes%iv_sourcessteps = 0
     write(filename, '(a, i0, a)') 'data_file_', privateindexes%iv_q_ix, '.dat'
-    open(unit=101, file=trim(filename), status='replace')
-    write(101, *) " privateindexes%iv_q_ix: ", privateindexes%iv_q_ix
-    write(101, *) "    privateindexes%iv_q: ", privateindexes%iv_q
-    write(101, *) "                     a0: ", a0
-    write(101, *) "                     b0: ", b0
-    write(101, *) "                     ho: ", ho
-    write(101, *) "                  ho2o6: ", ho2o6
-    write(101, *) "                    a03: ", a03
-    write(101, *) "                    b03: ", b03
-    write(101, *) "                    klo: ", klo
-    write(101, *) "                    khi: ", khi
-    close(101)
+    open(unit=ixunit, file=trim(filename), status='replace')
+    write(ixunit, *) " privateindexes%iv_q_ix: ", privateindexes%iv_q_ix
+    write(ixunit, *) "    privateindexes%iv_q: ", privateindexes%iv_q
+    write(ixunit, *) "                     a0: ", a0
+    write(ixunit, *) "                     b0: ", b0
+    write(ixunit, *) "                     ho: ", ho
+    write(ixunit, *) "                  ho2o6: ", ho2o6
+    write(ixunit, *) "                    a03: ", a03
+    write(ixunit, *) "                    b03: ", b03
+    write(ixunit, *) "                    klo: ", klo
+    write(ixunit, *) "                    khi: ", khi
+    close(ixunit)
 
     !Interpolating the source as a function of time for the present
     !wavelength.
