@@ -308,7 +308,7 @@
     integer :: i, j, k, lb1, lb2, lb3, ub1, ub2, ub3
     double precision , allocatable, dimension(:,:) :: IVSource_q
     !double precision , allocatable, dimension(:,:) :: IVddSource_q
-
+    integer :: IVSource_qrows, IVSource_qcols
 
     full_bessel_integrationin = full_bessel_integration
 
@@ -426,6 +426,12 @@
             " shape: ", shape(ajlpr)
 
         ! I should allocate this only in the GPU
+        IVSource_qrows = State%TimeSteps%npoints
+        IVSource_qcols = ThisSources%SourceNum
+        allocate(IVSource_q(IVSource_qrows, IVSource_qcols))
+        print *, "                       IVSource_qrows: ", IVSource_qrows
+        print *, "                       IVSource_qcols: ", IVSource_qcols
+        print *, "                 allocated IVSource_q: ", allocated(IVSource_q), " size " , size(IVSource_q)
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
         !print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
@@ -468,39 +474,26 @@
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
-        !$acc   copyin(DebugEvolutionin, State%TimeSteps%npoints) &
-        !$acc   copyin(ThisSources%SourceNum)
+        !$acc   copyin(DebugEvolutionin) &
+        !$acc   copyin(IVSource_q) ! we need a create not a copyin
 #endif
 #ifdef USEOMP
         !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IVSource_q), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
-#ifndef USEACC
-            allocate(IVSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
-            ! if not flat we need also IV%ddSource_q
-            ! do not think so but maybe I will need to zerpos the allocated arrays
-#else
-            !$acc enter data create(IVSource_q(State%TimeSteps%npoints,ThisSources%SourceNum))
+#ifdef USEACC
+            !CALL Print_From_ACC("Index:", q_ix)
 #endif            
-!#ifdef USEACC
-!            CALL Print_From_ACC("Index:", q_ix)
-!#else
-!            write (*,*) 'Index:', q_ix
-!#endif
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
               xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution, IVSource_q)
               !, bes_ix_check, IVSource_q, IVddSource_q)
-#ifndef USEACC
-            deallocate(IVSource_q)
-#else
-            !$acc exit data delete (IVSource_q)
-#endif
         end do !q loop
 #ifdef USEACC
         !$ACC END PARALLEL LOOP
+        !ACC END DATA
         ! shoulf use maybe $ACC END LOOP
         ! and so $ACC END DATA
 #else
@@ -509,6 +502,7 @@
         !open(100, file='iv_sourcessteps.txt', status='replace')
         !write(100,*) %iv_sourcessteps
         !close(100)
+        deallocate(IVSource_q)
 
         !open(100, file='ddScaledSrc.txt', status='replace')
         !lb1 = lbound(ddScaledSrc, 1)
@@ -2607,5 +2601,3 @@
 #include "openaccfunc.f90"
 
     end module CAMBmain
-
-! START OPENACC 
