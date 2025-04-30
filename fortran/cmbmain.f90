@@ -477,7 +477,7 @@
         !$acc   copyin(DebugEvolutionin) 
 #endif
 #ifdef USEOMP
-        !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IVSource_q), SCHEDULE(STATIC,4)
+        !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
 #endif        
         do q_ix=1,ThisCT%q%npoints
 #ifdef USEACC
