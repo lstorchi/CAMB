@@ -25,12 +25,12 @@ if [ -f $1 ]; then
   cp ./CPU/Makefile ./
   cd ../forutils ; make clean; cd - ; make clean ; make 
   ./camb $1 
-  mv *.dat ./CPU/
+  cp -f *.dat ./CPU/
   
   cp ./GPU/Makefile ./
   cd ../forutils ; make clean; cd - ; make clean ; make 
   ./camb $1 
-  mv *.dat ./GPU/
+  cp -f *.dat ./GPU/
  
   cd CPU/
   for name in * ; do echo $name; diff -b -B $name ../GPU/$name; done 

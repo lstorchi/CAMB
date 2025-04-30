@@ -25,12 +25,12 @@ if [ -f $1 ]; then
   cp ./serial/Makefile ./
   make clean ; make 
   time ./camb $1 
-  mv $filelist ./serial
+  cp -f $filelist ./serial
 
   cp ./omp/Makefile ./
   make clean ; make 
   time ./camb $1 
-  mv $filelist ./omp/ 
+  cp -f $filelist ./omp/ 
 else
   echo "Input file does not exist"
   exit
