@@ -1,7 +1,7 @@
 #CAMB Makefile
-NVCOMP=no
-OPENACC=no
-OPENMP=yes
+NVCOMP=yes
+OPENACC=yes
+OPENMP=no
 ACTIVECOMPAREINDEXOF=no
 ACTIVEDEBUGFLAGS=yes
 NONNATIVE=1
@@ -116,7 +116,7 @@ else
       COMPILER = gfortran
       F90C     = gfortran
       ifeq "$(OPENMP)" "yes"
-        COMMON_FFLAGS = -DUSEOMP -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
       else
         COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4
       endif
