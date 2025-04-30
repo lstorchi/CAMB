@@ -308,7 +308,7 @@
     integer :: i, j, k, lb1, lb2, lb3, ub1, ub2, ub3
     !double precision , allocatable, dimension(:,:) :: IVSource_q
     !double precision , allocatable, dimension(:,:) :: IVddSource_q
-    !integer :: IVSource_qrows, IVSource_qcols
+    integer :: IVSource_qrows, IVSource_qcols
 
     full_bessel_integrationin = full_bessel_integration
 
@@ -474,8 +474,7 @@
         !$acc   do_bispectrum, max_bessels_l_index, datasb, &
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
-        !$acc   copyin(DebugEvolutionin) &
-        !acc   copyin(IVSource_q) ! we need a create not a copyin
+        !$acc   copyin(DebugEvolutionin) 
 #endif
 #ifdef USEOMP
         !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IVSource_q), SCHEDULE(STATIC,4)
@@ -502,7 +501,6 @@
         !open(100, file='iv_sourcessteps.txt', status='replace')
         !write(100,*) %iv_sourcessteps
         !close(100)
-        deallocate(IVSource_q)
 
         !open(100, file='ddScaledSrc.txt', status='replace')
         !lb1 = lbound(ddScaledSrc, 1)
