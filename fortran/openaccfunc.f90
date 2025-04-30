@@ -1,5 +1,8 @@
 ! START OPENACC 
 
+#define  IVSQROWS 1000
+#define  IVSQCOLS 3
+
 subroutine spline_def_local (x,y,n,d2)
 #ifdef USEACC
 !$acc routine seq
@@ -205,8 +208,8 @@ subroutine SourceToTransfers(datasb, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
     do_bispectrumin, max_bessels_l_indexin, IV, &
-    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin, &
-    IVSource_q)
+    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin) 
+    !IVSource_q)
 #ifdef USEACC
 !$acc routine seq
 #endif
@@ -229,8 +232,8 @@ subroutine SourceToTransfers(datasb, &
     logical :: full_bessel_integrationin, do_bispectrumin, DebugEvolutionin
     type(datastatebessel) :: datasb   
     type(PrivateIdxs) :: privateindexes
-    double precision , allocatable, dimension(:,:) :: IVSource_q
-
+    !double precision , allocatable, dimension(:,:) :: IVSource_q
+    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
     !call IntegrationVars_Init(IV, datasb)
     ! to avoid a call 
 
@@ -283,8 +286,9 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     logical :: DebugEvolutionin
     type(PrivateIdxs) :: privateindexes
     integer :: ixunit
-    double precision , allocatable, dimension(:,:) :: IVSource_q
-
+    !double precision , allocatable, dimension(:,:) :: IVSource_q
+    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
+    
     !character(len=30) :: filename
     !     finding position of k in table Evolve_q to do the interpolation.
 
@@ -396,8 +400,8 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     logical :: full_bessel_integrationin, do_bispectrumin
     type(datastatebessel) :: datasb
     type(PrivateIdxs) :: privateindexes
-    double precision , allocatable, dimension(:,:) :: IVSource_q
-
+    !double precision , allocatable, dimension(:,:) :: IVSource_q
+    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
 
     nu=privateindexes%iv_q*datasb%s_curvature_radius
     sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
@@ -479,7 +483,8 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     real(dl) xlimfracin, xlimminin
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     type(PrivateIdxs) :: privateindexes
-    double precision , allocatable, dimension(:,:) :: IVSource_q
+    !double precision , allocatable, dimension(:,:) :: IVSource_q
+    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
 
     ! local vars    
     integer j

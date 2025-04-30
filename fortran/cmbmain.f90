@@ -306,9 +306,9 @@
     logical :: DebugEvolutionin
     !double precision , allocatable, dimension(:) :: bes_ix_check
     integer :: i, j, k, lb1, lb2, lb3, ub1, ub2, ub3
-    double precision , allocatable, dimension(:,:) :: IVSource_q
+    !double precision , allocatable, dimension(:,:) :: IVSource_q
     !double precision , allocatable, dimension(:,:) :: IVddSource_q
-    integer :: IVSource_qrows, IVSource_qcols
+    !integer :: IVSource_qrows, IVSource_qcols
 
     full_bessel_integrationin = full_bessel_integration
 
@@ -428,10 +428,10 @@
         ! I should allocate this only in the GPU
         IVSource_qrows = State%TimeSteps%npoints
         IVSource_qcols = ThisSources%SourceNum
-        allocate(IVSource_q(IVSource_qrows, IVSource_qcols))
+        !allocate(IVSource_q(IVSource_qrows, IVSource_qcols))
         print *, "                       IVSource_qrows: ", IVSource_qrows
         print *, "                       IVSource_qcols: ", IVSource_qcols
-        print *, "                 allocated IVSource_q: ", allocated(IVSource_q), " size " , size(IVSource_q)
+        !print *, "                 allocated IVSource_q: ", allocated(IVSource_q), " size " , size(IVSource_q)
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
         !print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
@@ -475,7 +475,7 @@
         !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
         !$acc   copy(ThisCT%delta_p_l_k) &
         !$acc   copyin(DebugEvolutionin) &
-        !$acc   copyin(IVSource_q) ! we need a create not a copyin
+        !acc   copyin(IVSource_q) ! we need a create not a copyin
 #endif
 #ifdef USEOMP
         !$OMP PARALLEL DO DEFAULT(SHARED), PRIVATE(IVSource_q), SCHEDULE(STATIC,4)
@@ -488,7 +488,7 @@
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
               full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
-              xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution, IVSource_q)
+              xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution)
               !, bes_ix_check, IVSource_q, IVddSource_q)
         end do !q loop
 #ifdef USEACC
