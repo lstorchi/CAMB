@@ -462,19 +462,20 @@
         ! the methods as standalone function 
         ! should use something like  ACC PARALLEL LOOP GANG, VECTOR(4) 
 
-        !$ACC PARALLEL LOOP  copy(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
-        !$acc   copy(ThisSources%Evolve_q%points) &
-        !$acc   copy(datasb%s_points, datasb%s_dpoints, &
-        !$acc        datasb%b_points, datasb%s_r, datasb%b_r) &
-        !$acc   copy(datasb, datasb%s_points, datasb%b_points) &
-        !$acc   copy(datasb%s_dpoints, datasb%s_r, datasb%b_r) &
-        !$acc   private(q_ix) copy(ScaledSrc, & 
-        !$acc   ddScaledSrc, max_etak_tensor, WantLateTime, & 
-        !$acc   max_etak_scalar, full_bessel_integrationin, &
-        !$acc   do_bispectrum, max_bessels_l_index, datasb, &
-        !$acc   max_etak_vector, xlimfracin, xlimminin, ajl, ajlpr) &
-        !$acc   copy(ThisCT%delta_p_l_k) &
-        !$acc   copyin(DebugEvolutionin) 
+        !$ACC PARALLEL LOOP &
+        !$acc   private(q_ix) &
+        !$acc   copyin(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
+        !$acc   copyin(ThisSources%Evolve_q%points, &
+        !$acc      datasb%s_points, datasb%s_dpoints, &
+        !$acc      datasb%b_points, datasb%s_r, datasb%b_r, &
+        !$acc      datasb, datasb%s_points, datasb%b_points, &
+        !$acc      datasb%s_dpoints, datasb%s_r, datasb%b_r, &
+        !$acc      ScaledSrc, ddScaledSrc, max_etak_tensor, &
+        !$acc      WantLateTime, max_etak_scalar, &
+        !$acc      full_bessel_integrationin, do_bispectrum, &
+        !$acc      max_bessels_l_index, datasb, max_etak_vector, &
+        !$acc      xlimfracin, xlimminin, ajl, ajlpr, DebugEvolutionin) &
+        !$acc   copyout(ThisCT%delta_p_l_k) 
 #endif
 #ifdef USEOMP
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
