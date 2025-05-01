@@ -57,7 +57,7 @@
 
 function statbesseindexof (count, R, npoints, Highest, tau) 
 #ifdef USEACC
-!$ACC ROUTINE 
+!$acc routine 
 #endif
     use RangeUtils
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
@@ -157,7 +157,7 @@ subroutine SourceToTransfers(datasb, &
     xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin) 
     !IVSource_q)
 #ifdef USEACC
-!$acc routine seq
+!$acc routine
 #endif
 !    use CAMBmain
 !    use results
@@ -212,7 +212,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
     privateindexes, IVSource_q)
 #ifdef USEACC
-!$acc routine seq
+!$acc routine 
 #endif
 
 !    use CAMBmain
@@ -287,10 +287,12 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
         end if
 
         if (datasb%cp_want_vectors) then
-            if (privateindexes%iv_q*datasb%s_points(i) < max_etak_vectorin.and. xf > 1.e-8_dl) then
+            if (privateindexes%iv_q*datasb%s_points(i) < max_etak_vectorin.and. &
+              xf > 1.e-8_dl) then
                 step=i
-                IVSource_q(i,:) =a0*ScaledSrcin(klo,:,i) + b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
-                    b03*ddScaledSrcin(khi,:,i)) *ho2o6
+                IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i) + & 
+                  b0*ScaledSrcin(khi,:,i)+(a03 * ddScaledSrcin(klo,:,i)+ &
+                  b03*ddScaledSrcin(khi,:,i)) *ho2o6
             else
                 IVSource_q(i,:) = 0.0_dl
             end if
@@ -301,8 +303,9 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
                 privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
                 step=i
-                IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
-                    b03 * ddScaledSrcin(khi,:,i)) * ho2o6
+                IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  & 
+                  b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                  b03 * ddScaledSrcin(khi,:,i)) * ho2o6
             else
                 IVSource_q(i,:) = 0.0_dl
             end if
@@ -325,7 +328,7 @@ subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q) !for particular wave number q
 #ifdef USEACC
-!$acc routine seq
+!$acc routine 
 #endif
 
 !    use CAMBmain
@@ -403,7 +406,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q)
 #ifdef USEACC
-!$ACC ROUTINE SEQ
+!$acc routine 
 #endif
 
 !    use CAMBmain

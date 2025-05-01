@@ -464,8 +464,8 @@
 
         !$ACC PARALLEL LOOP &
         !$acc   private(q_ix) &
-        !$acc   copyin(ThisCT%ls%l, ThisCT%q%points, ThisCT%q%dpoints) &
-        !$acc   copyin(ThisSources%Evolve_q%points, &
+        !$acc   copyin(ThisCT%ls%l, ThisCT%q%points, &
+        !$acc      ThisCT%q%dpoints, ThisSources%Evolve_q%points, &
         !$acc      datasb%s_points, datasb%s_dpoints, &
         !$acc      datasb%b_points, datasb%s_r, datasb%b_r, &
         !$acc      datasb, datasb%s_points, datasb%b_points, &
@@ -473,8 +473,9 @@
         !$acc      ScaledSrc, ddScaledSrc, max_etak_tensor, &
         !$acc      WantLateTime, max_etak_scalar, &
         !$acc      full_bessel_integrationin, do_bispectrum, &
-        !$acc      max_bessels_l_index, datasb, max_etak_vector, &
-        !$acc      xlimfracin, xlimminin, ajl, ajlpr, DebugEvolutionin) &
+        !$acc      max_bessels_l_index, max_etak_vector, &
+        !$acc      xlimfracin, xlimminin, ajl, ajlpr, &
+        !$acc      DebugEvolutionin) &
         !$acc   copyout(ThisCT%delta_p_l_k) 
 #endif
 #ifdef USEOMP
