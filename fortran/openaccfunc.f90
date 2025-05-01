@@ -3,115 +3,61 @@
 #define  IVSQROWS 2000
 #define  IVSQCOLS 5
 
-subroutine spline_def_local (x,y,n,d2)
-#ifdef USEACC
-!$acc routine seq
-#endif
-    !Low-level initialize spline arrays with default boundary conditions 
-    integer, intent(in) :: n
-    real(dl), intent(in) :: x(n), y(n)
-    real(dl), intent(out) :: d2(n)
-    real(dl) ::  d11, d1n
-    real(dl) xp,qn,sig,un,xxdiv,u(n-1),d1l,d1r
-    real(dl), parameter :: LOCALSPLINE_DANGLE=1.d30
-    integer i
-
-    d11 = LOCALSPLINE_DANGLE 
-    d1n = LOCALSPLINE_DANGLE
-
-    d1r= (y(2)-y(1))/(x(2)-x(1))
-    if (d11==SPLINE_DANGLE) then
-        d2(1)=0.d0
-        u(1)=0.d0
-    else
-        d2(1)=-0.5d0
-        u(1)=(3.d0/(x(2)-x(1)))*(d1r-d11)
-    endif
-
-    do i=2,n-1
-        d1l=d1r
-        d1r=(y(i+1)-y(i))/(x(i+1)-x(i))
-        xxdiv=1.d0/(x(i+1)-x(i-1))
-        sig=(x(i)-x(i-1))*xxdiv
-        xp=1.d0/(sig*d2(i-1)+2.d0)
-
-        d2(i)=(sig-1.d0)*xp
-
-        u(i)=(6.d0*(d1r-d1l)*xxdiv-sig*u(i-1))*xp
-    end do
-    d1l=d1r
-
-    if (d1n==LOCALSPLINE_DANGLE) then
-        qn=0.d0
-        un=0.d0
-    else
-        qn=0.5d0
-        un=(3.d0/(x(n)-x(n-1)))*(d1n-d1l)
-    endif
-
-    d2(n)=(un-qn*u(n-1))/(qn*d2(n-1)+1.d0)
-    do i=n-1,1,-1
-        d2(i)=d2(i)*d2(i+1)+u(i)
-    end do
-end subroutine spline_def_local
-
-subroutine transferdata (statein, bessein, &
-    s_tau0, s_chi0, s_curvature_radius, s_tau_start_redshiftwindows, &
-    s_flat, s_closed, s_num_redshiftwindows, s_num_extra_redshiftwindows, &
-    s_npoints, s_lowest, s_highest, b_npoints, b_lowest, b_highest)
-
-    implicit none
-
-    class(CAMBdata), intent(in) :: statein
-    class(TRanges), intent(in) :: bessein
-
-    double precision, intent(inout) :: s_tau0, s_chi0, s_curvature_radius, &
-        s_tau_start_redshiftwindows
-    logical, intent(inout) :: s_flat, s_closed
-    integer, intent(inout) :: s_num_redshiftwindows, s_num_extra_redshiftwindows, &
-        s_npoints, b_npoints
-    double precision, intent(inout) :: s_lowest, s_highest, b_lowest, b_highest
-
-    print *, "transferdata"
-
-    s_tau0 = statein%tau0
-    s_chi0 = statein%chi0
-    s_flat = statein%flat
-    s_closed = statein%closed
-    s_curvature_radius = statein%curvature_radius
-    s_num_redshiftwindows = statein%num_redshiftwindows
-    s_num_extra_redshiftwindows = statein%num_extra_redshiftwindows
-    s_npoints = statein%TimeSteps%npoints
-    s_lowest = statein%TimeSteps%Lowest
-    s_highest = statein%TimeSteps%Highest
-    s_tau_start_redshiftwindows = statein%ThermoData%tau_start_redshiftwindows
-
-    b_npoints = bessein%npoints
-    b_highest = bessein%Highest
-    b_lowest = bessein%Lowest
-
-    print *, "s_tau0 = ", s_tau0
-    print *, "s_chi0 = ", s_chi0
-    print *, "s_flat = ", s_flat
-    print *, "s_closed = ", s_closed
-    print *, "s_curvature_radius = ", s_curvature_radius
-    print *, "s_num_redshiftwindows = ", s_num_redshiftwindows
-    print *, "s_num_extra_redshiftwindows = ", s_num_extra_redshiftwindows
-    print *, "s_npoints = ", s_npoints
-    print *, "s_lowest = ", s_lowest
-    print *, "s_highest = ", s_highest
-    print *, "s_tau_start_redshiftwindows = ", s_tau_start_redshiftwindows
-    
-    print *, "b_npoints = ", b_npoints
-    print *, "b_lowest = ", b_lowest
-    print *, "b_highest = ", b_highest
-
-end subroutine transferdata
-
+!subroutine spline_def_local (x,y,n,d2)
+!#ifdef USEACC
+!!$acc routine seq
+!#endif
+!    !Low-level initialize spline arrays with default boundary conditions 
+!    integer, intent(in) :: n
+!    real(dl), intent(in) :: x(n), y(n)
+!    real(dl), intent(out) :: d2(n)
+!    real(dl) ::  d11, d1n
+!    real(dl) xp,qn,sig,un,xxdiv,u(n-1),d1l,d1r
+!    real(dl), parameter :: LOCALSPLINE_DANGLE=1.d30
+!    integer i
+!
+!    d11 = LOCALSPLINE_DANGLE 
+!    d1n = LOCALSPLINE_DANGLE
+!
+!    d1r= (y(2)-y(1))/(x(2)-x(1))
+!    if (d11==SPLINE_DANGLE) then
+!        d2(1)=0.d0
+!        u(1)=0.d0
+!    else
+!        d2(1)=-0.5d0
+!        u(1)=(3.d0/(x(2)-x(1)))*(d1r-d11)
+!    endif
+!
+!    do i=2,n-1
+!        d1l=d1r
+!        d1r=(y(i+1)-y(i))/(x(i+1)-x(i))
+!        xxdiv=1.d0/(x(i+1)-x(i-1))
+!        sig=(x(i)-x(i-1))*xxdiv
+!        xp=1.d0/(sig*d2(i-1)+2.d0)
+!
+!        d2(i)=(sig-1.d0)*xp
+!
+!        u(i)=(6.d0*(d1r-d1l)*xxdiv-sig*u(i-1))*xp
+!    end do
+!    d1l=d1r
+!
+!    if (d1n==LOCALSPLINE_DANGLE) then
+!        qn=0.d0
+!        un=0.d0
+!    else
+!        qn=0.5d0
+!        un=(3.d0/(x(n)-x(n-1)))*(d1n-d1l)
+!    endif
+!
+!    d2(n)=(un-qn*u(n-1))/(qn*d2(n-1)+1.d0)
+!    do i=n-1,1,-1
+!        d2(i)=d2(i)*d2(i+1)+u(i)
+!    end do
+!end subroutine spline_def_local
 
 function statbesseindexof (count, R, npoints, Highest, tau) 
 #ifdef USEACC
-!$ACC ROUTINE SEQ
+!$ACC ROUTINE 
 #endif
     use RangeUtils
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
