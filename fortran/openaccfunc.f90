@@ -207,7 +207,7 @@ subroutine SourceToTransfers(datasb, &
     ThisCT, q_ix,  ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, full_bessel_integrationin, &
-    do_bispectrumin, max_bessels_l_indexin, IV, &
+    do_bispectrumin, max_bessels_l_indexin, &
     xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin) 
     !IVSource_q)
 #ifdef USEACC
@@ -224,7 +224,6 @@ subroutine SourceToTransfers(datasb, &
     type(ClTransferData), target :: ThisCT 
     Type(TTimeSources) :: ThisSourcesin
     integer :: q_ix, max_bessels_l_indexin
-    type(IntegrationVars) :: IV
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
     real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
@@ -250,11 +249,11 @@ subroutine SourceToTransfers(datasb, &
     !print *, "ThisCT%q%dpoints(q_ix) ", ThisCT%q%dpoints(q_ix)
     !print *, "privateindexes%iv_q ", privateindexes%iv_q
 
-    call InterpolateSources(IV, ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
+    call InterpolateSources(ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
       datasb, DebugEvolutionin, privateindexes, IVSource_q)
 
-    call DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
+    call DoSourceIntegration(ThisCT, ThisSourcesin, &
             full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
             datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
             privateindexes, IVSource_q)
@@ -262,7 +261,7 @@ subroutine SourceToTransfers(datasb, &
 end subroutine SourceToTransfers
 
 
-subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
+subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
     WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
     privateindexes, IVSource_q)
@@ -276,7 +275,6 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
     implicit none
     integer i,khi,klo, step
     real(dl) xf,b0,ho,a0,ho2o6,a03,b03
-    type(IntegrationVars) IV
     Type(TTimeSources) :: ThisSourcesin
     real(dl), dimension(:,:,:) :: ScaledSrcin
     real(dl), dimension(:,:,:) :: ddScaledSrcin
@@ -376,7 +374,7 @@ subroutine InterpolateSources(IV, ThisSourcesin, ScaledSrcin, &
  
 end subroutine InterpolateSources
 
-subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
+subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q) !for particular wave number q
@@ -389,7 +387,6 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
 !    use model
 !    use results
 
-    type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT    
     real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
     real(dl) xlimfracin, xlimminin
@@ -439,7 +436,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
     end if
 
     if (datasb%s_flat) then
-        call DoFlatIntegration(IV,ThisCT, llmax, ThisSourcesin, &
+        call DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
           full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
           datasb,xlimfracin,xlimminin,ajlin,ajlprin,privateindexes, IVSource_q)
     else
@@ -455,7 +452,7 @@ subroutine DoSourceIntegration(IV, ThisCT, ThisSourcesin, &
 end subroutine DoSourceIntegration
 
 
-subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
+subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q)
@@ -473,7 +470,6 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
     implicit none
 
     ! input 
-    type(IntegrationVars) IV
     Type(ClTransferData) :: ThisCT 
     integer llmax
     Type(TTimeSources) :: ThisSourcesin
@@ -501,22 +497,6 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
 #ifdef USEOMP
     integer :: omp_thread_num, thread_id
 #endif
-
-!    INTERFACE
-!        FUNCTION statbesseindexof (count, R, npoints, Highest, tau)
-!#ifdef USEACC
-!            !$ACC ROUTINE SEQ 
-!#endif
-!            USE RangeUtils
-!            INTEGER :: statbesseindexof
-!
-!            INTEGER, INTENT(IN) :: count            
-!            TYPE(TRange), INTENT(IN) :: R(count)    
-!            INTEGER, INTENT(IN) :: npoints         
-!            DOUBLE PRECISION, INTENT(IN) :: Highest 
-!            DOUBLE PRECISION, INTENT(IN) :: tau     
-!        END FUNCTION statbesseindexof
-!    END INTERFACE
 
     !integer :: tocompare
     integer :: startloopidx, endloopidx
@@ -694,7 +674,7 @@ subroutine DoFlatIntegration(IV, ThisCT, llmax, ThisSourcesin, &
                            sums(1) = sums(1) + IVSource_q(n,1)*J_l
                            sums(2) = sums(2) + IVSource_q(n,2)*J_l
                            sums(3) = sums(3) + IVSource_q(n,3)*J_l
-                           sums(custom_source_off) = sums(custom_source_off) +  IV%Source_q(n,custom_source_off)*J_l
+                           sums(custom_source_off) = sums(custom_source_off) +  IVSource_q(n,custom_source_off)*J_l
                            if (n >= nwin) then
                                do s_ix = 4, datasb%ttsources_non_custom_sources_num
                                    sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l

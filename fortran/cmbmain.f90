@@ -486,7 +486,7 @@
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
-              full_bessel_integrationin, do_bispectrum, max_bessels_l_index, IV, &
+              full_bessel_integrationin, do_bispectrum, max_bessels_l_index, &
               xlimfrac, xlimmin, ajl, ajlpr, DebugEvolution)
               !, bes_ix_check, IVSource_q, IVddSource_q)
         end do !q loop
