@@ -57,14 +57,14 @@
 
 function statbesseindexof (count, R, npoints, Highest, tau) 
 #ifdef USEACC
-!$acc routine 
+!$acc routine seq
 #endif
     use RangeUtils
     !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
     ! to test it compare respect to State.IndexOf 
     integer :: statbesseindexof
-    double precision, intent(in) :: tau
-    integer , intent(in) :: count
+    double precision, value, intent(in) :: tau
+    integer , value, intent(in) :: count
     type(TRange), intent(in) :: R(count)
     integer, intent(in) :: npoints
     double precision, intent(in) :: Highest
