@@ -24,12 +24,12 @@ if [ -f $1 ]; then
  
   cp ./CPU/Makefile ./
   cd ../forutils ; make clean; cd - ; make clean ; make 
-  ./camb $1 
+  time ./camb $1 
   cp -f *.dat ./CPU/
   
   cp ./GPU/Makefile ./
   cd ../forutils ; make clean; cd - ; make clean ; make 
-  ./camb $1 
+  time ./camb $1 
   cp -f *.dat ./GPU/
  
   cd CPU/
