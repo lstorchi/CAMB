@@ -462,7 +462,7 @@
         ! the methods as standalone function 
         ! should use something like  ACC PARALLEL LOOP GANG, VECTOR(4) 
 
-        !$ACC PARALLEL LOOP &
+        !$ACC PARALLEL LOOP GANG &
         !$acc   private(q_ix) &
         !$acc   copyin(ThisCT%ls%l, ThisCT%q%points, &
         !$acc      ThisCT%q%dpoints, ThisSources%Evolve_q%points, &

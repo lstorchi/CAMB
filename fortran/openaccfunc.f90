@@ -157,7 +157,7 @@ subroutine SourceToTransfers(datasb, &
     xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin) 
     !IVSource_q)
 #ifdef USEACC
-!$acc routine
+!$acc routine 
 #endif
 !    use CAMBmain
 !    use results
@@ -406,7 +406,8 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q)
 #ifdef USEACC
-!$acc routine 
+!acc routine vector
+!$acc routine
 #endif
 
 !    use CAMBmain
@@ -462,7 +463,6 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
 
     !     Find the position in the xx table for the x correponding to each
     !     timestep
-
     do j=1,privateindexes%iv_sourcessteps !Precompute arrays for this k
         xf=abs(privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(j)))
         ! in case need to use a statein as input
