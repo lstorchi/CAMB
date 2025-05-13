@@ -181,9 +181,6 @@ subroutine SourceToTransfers(datasb, &
     !call IntegrationVars_Init(IV, datasb)
     ! to avoid a call 
 
-    !print *, "allocated ajlin: ", allocated(ajlin)
-    !print *, "allocated ajlprin: ", allocated(ajlprin)
-
     IVSource_q(1,:)=0
     IVSource_q(datasb%s_npoints,:) = 0
     IVSource_q(datasb%s_npoints-1,:) = 0
@@ -191,8 +188,6 @@ subroutine SourceToTransfers(datasb, &
     privateindexes%iv_q_ix = q_ix
     privateindexes%iv_q = ThisCT%q%points(q_ix)
     privateindexes%iv_dq = ThisCT%q%dpoints(q_ix)
-    !print *, "ThisCT%q%dpoints(q_ix) ", ThisCT%q%dpoints(q_ix)
-    !print *, "privateindexes%iv_q ", privateindexes%iv_q
 
     call InterpolateSources(ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
       max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
@@ -254,19 +249,12 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     b03=(b0**3-b0)
     ixunit = privateindexes%iv_q_ix
     privateindexes%iv_sourcessteps = 0
-    !write(filename, '(a, i0, a)') 'data_file_', privateindexes%iv_q_ix, '.dat'
-    !open(unit=ixunit, file=trim(filename), status='replace')
-    !write(ixunit, *) " privateindexes%iv_q_ix: ", privateindexes%iv_q_ix
-    !write(ixunit, *) "    privateindexes%iv_q: ", privateindexes%iv_q
-    !write(ixunit, *) "                     a0: ", a0
-    !write(ixunit, *) "                     b0: ", b0
-    !write(ixunit, *) "                     ho: ", ho
-    !write(ixunit, *) "                  ho2o6: ", ho2o6
-    !write(ixunit, *) "                    a03: ", a03
-    !write(ixunit, *) "                    b03: ", b03
-    !write(ixunit, *) "                    klo: ", klo
-    !write(ixunit, *) "                    khi: ", khi
-    !close(ixunit)
+
+#ifndef USEACC
+    print *, "datasb%cp_want_tensors: ", datasb%cp_want_tensors
+    print *, "datasb%cp_want_vectors: ", datasb%cp_want_vectors
+    print *, "datasb%cp_want_scalars: ", datasb%cp_want_scalars
+#endif
 
     !Interpolating the source as a function of time for the present
     !wavelength.
@@ -352,6 +340,11 @@ subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
 
     nu=privateindexes%iv_q*datasb%s_curvature_radius
     sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
+
+#ifndef USEACC
+   print *, " datasb%s_closed: ", datasb%s_closed
+   print *, "   datasb%s_flat: ", datasb%s_flat
+#endif
 
     if (datasb%s_closed) then
         if (nu<20 .or. datasb%s_tau0/datasb%s_curvature_radius+sixpibynu > const_pi/2) then
@@ -460,6 +453,15 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     if (omp_thread_num > 1) then
         thread_id = omp_get_thread_num()
     end if
+#endif
+
+#ifndef USEACC
+    print *, "full_bessel_integrationin: ", full_bessel_integrationin
+    print *, "   do_bispectrumin: ", do_bispectrumin
+    print *, "   datasb%ttsources_sourcenum: ", datasb%ttsources_sourcenum
+    print *, "  datasb%s_num_redshiftwindows: ", datasb%s_num_redshiftwindows
+    print *, "  datasb%s_num_extra_redshiftwindows: ", datasb%s_num_extra_redshiftwindows
+    print *, "  datasb%cp_custom_sources_nam_custom: ", datasb%cp_custom_sources_nam_custom
 #endif
 
     BessIntBoost = datasb%cp_accuracy_boost*datasb%cp_accuracy_bessintboost

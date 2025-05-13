@@ -1,6 +1,6 @@
 #CAMB Makefile
-NVCOMP=no
-OPENACC=no
+NVCOMP=yes
+OPENACC=yes
 OPENMP=no
 ACTIVECOMPAREINDEXOF=no
 ACTIVEDEBUGFLAGS=yes
@@ -94,7 +94,8 @@ else
     #  nvidia-smi --query-gpu=compute_cap --format=csv
     # ls /opt/nvidia/hpc_sdk/Linux_x86_64/25.1/cuda/ to see cuda version
     ifeq "$(OPENACC)" "yes"
-      COMMON_FFLAGS = -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6,deepcopy -Minfo=accel -cuda
+      #COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6,deepcopy -Minfo=accel -cuda
+      COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=deepcopy -Minfo=accel 
       #COMMON_FFLAGS = -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6 -Minfo=accel -cuda
     else
       COMMON_FFLAGS = -MMD -cpp -Mextend -Minform=warn -Mextend
@@ -116,7 +117,7 @@ else
       COMPILER = gfortran
       F90C     = gfortran
       ifeq "$(OPENMP)" "yes"
-        COMMON_FFLAGS = -DUSEOMP -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
       else
         COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4
       endif
