@@ -1,7 +1,7 @@
 ! START OPENACC 
 
-#define  IVSQROWS 2000
-#define  IVSQCOLS 5
+#define  IVSQROWS 3600
+#define  IVSQCOLS 3
 
 #ifndef ONLYFLAT
 subroutine spline_def_local (x,y,n,d2)
@@ -226,6 +226,12 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     integer :: ixunit
     !double precision , allocatable, dimension(:,:) :: IVSource_q
     double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
+
+#ifndef USEACC
+    print *, "datasb%cp_want_tensors: ", datasb%cp_want_tensors
+    print *, "datasb%cp_want_vectors: ", datasb%cp_want_vectors
+    print *, "datasb%cp_want_scalars: ", datasb%cp_want_scalars
+#endif
     
     !character(len=30) :: filename
     !     finding position of k in table Evolve_q to do the interpolation.
@@ -249,12 +255,6 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     b03=(b0**3-b0)
     ixunit = privateindexes%iv_q_ix
     privateindexes%iv_sourcessteps = 0
-
-#ifndef USEACC
-    print *, "datasb%cp_want_tensors: ", datasb%cp_want_tensors
-    print *, "datasb%cp_want_vectors: ", datasb%cp_want_vectors
-    print *, "datasb%cp_want_scalars: ", datasb%cp_want_scalars
-#endif
 
     !Interpolating the source as a function of time for the present
     !wavelength.

@@ -1,7 +1,7 @@
 ! START OPENACC 
 
-#define  IVSQROWS 2000
-#define  IVSQCOLS 5
+#define  IVSQROWS 3600
+#define  IVSQCOLS 3
 
 #ifndef ONLYFLAT
 subroutine spline_def_local (x,y,n,d2)
@@ -226,6 +226,12 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     integer :: ixunit
     !double precision , allocatable, dimension(:,:) :: IVSource_q
     double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
+
+#ifndef USEACC
+    print *, "datasb%cp_want_tensors: ", datasb%cp_want_tensors
+    print *, "datasb%cp_want_vectors: ", datasb%cp_want_vectors
+    print *, "datasb%cp_want_scalars: ", datasb%cp_want_scalars
+#endif
     
     !character(len=30) :: filename
     !     finding position of k in table Evolve_q to do the interpolation.
@@ -249,12 +255,6 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     b03=(b0**3-b0)
     ixunit = privateindexes%iv_q_ix
     privateindexes%iv_sourcessteps = 0
-
-#ifndef USEACC
-    print *, "datasb%cp_want_tensors: ", datasb%cp_want_tensors
-    print *, "datasb%cp_want_vectors: ", datasb%cp_want_vectors
-    print *, "datasb%cp_want_scalars: ", datasb%cp_want_scalars
-#endif
 
     !Interpolating the source as a function of time for the present
     !wavelength.
@@ -411,7 +411,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
 !    use precision
 !    use model
 !    use results
-#ifdef USEOMP
+#ifndef USEACC
     use omp_lib
 #endif
     implicit none
@@ -441,14 +441,14 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
-#ifdef USEOMP
+#ifndef USEACC
     integer :: omp_thread_num, thread_id
 #endif
 
     !integer :: tocompare
     integer :: startloopidx, endloopidx
 
-#ifdef USEOMP
+#ifndef USEACC
     omp_thread_num = omp_get_max_threads()
     if (omp_thread_num > 1) then
         thread_id = omp_get_thread_num()
@@ -552,17 +552,6 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                        a2=aa(n)
                        bes_ix=bes_index(n)
                       
-#ifdef USEOMP
-                      !print *, "omp_thread_num: ", omp_thread_num
-                      !print *, "thrad_id: ", thread_id
-#endif
-                      !print *, "fac: ", shape(fac)
-                      !print *, "n: ", n
-                      !print *, "ajlin, ajlprin"
-                      !print *, shape(ajlin)
-                      !print *, shape(ajlprin)
-                      !print *, "bes_ix: ", bes_ix
-                      !print *, "j: ", j
                        J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
                            *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                        J_l = J_l*datasb%s_dpoints(n)
