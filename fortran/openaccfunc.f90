@@ -1,7 +1,7 @@
 ! START OPENACC 
 
 #define  IVSQROWS 3600
-#define  IVSQCOLS 3
+#define  IVSQCOLS 4
 
 #ifndef ONLYFLAT
 subroutine spline_def_local (x,y,n,d2)

@@ -1,7 +1,7 @@
 #CAMB Makefile
 NVCOMP=yes
 OPENACC=yes
-OPENMP=no
+OPENMP=yes
 ACTIVECOMPAREINDEXOF=no
 ACTIVEDEBUGFLAGS=no
 NONNATIVE=1
@@ -100,9 +100,6 @@ else
     else
       COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -Mextend -Minform=warn -Mextend
     endif
-    ifeq "$(OPENMP)" "yes"
-      COMMON_FFLAGS += -mp 
-    endif
     ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
       FFLAGS = -O0 -g $(COMMON_FFLAGS) 
     else
@@ -111,7 +108,9 @@ else
     ifeq "$(ACTIVECOMPAREINDEXOF)" "yes"
       FFLAGS += -DCOMPARISON
     endif
-
+    ifeq "$(OPENMP)" "yes"
+      FFLAGS += -mp -openmp
+    endif
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
     ifeq "$(gfortErr)" "0"
@@ -121,9 +120,9 @@ else
       COMPILER = gfortran
       F90C     = gfortran
       ifeq "$(OPENMP)" "yes"
-        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+        COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
       else
-        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4
+        COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -ffree-line-length-none -fmax-errors=4
       endif
       # Using -ffast-math causes differences between Debug and Release configurations.
       ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
@@ -133,6 +132,9 @@ else
       endif
       ifeq "$(ACTIVECOMPAREINDEXOF)" "yes"
         FFLAGS += -DCOMPARISON
+      endif
+      ifeq "$(OPENMP)" "yes"
+        FFLAGS += -fopenmp
       endif
       DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
       ifeq ($(shell uname -s),Darwin)
