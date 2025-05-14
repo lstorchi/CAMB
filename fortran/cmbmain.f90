@@ -477,14 +477,10 @@
         !$acc      xlimfracin, xlimminin, ajl, ajlpr, &
         !$acc      DebugEvolutionin) &
         !$acc   copyout(ThisCT%delta_p_l_k) 
-#endif
-#ifdef USEOMP
+#else
         !$OMP PARALLEL DO DEFAULT(SHARED), SCHEDULE(STATIC,4)
-#endif        
+#endif
         do q_ix=1,ThisCT%q%npoints
-#ifdef USEACC
-            !CALL Print_From_ACC("Index:", q_ix)
-#endif            
             call SourceToTransfers(datasb, &
               ThisCT, q_ix, ThisSources, ScaledSrc, ddScaledSrc, &
               max_etak_tensor, max_etak_vector, WantLateTime, max_etak_scalar, &
@@ -494,9 +490,6 @@
         end do !q loop
 #ifdef USEACC
         !$ACC END PARALLEL LOOP
-        !ACC END DATA
-        ! shoulf use maybe $ACC END LOOP
-        ! and so $ACC END DATA
 #else
         !$OMP END PARALLEL DO
 #endif
@@ -2598,6 +2591,6 @@
 
     end subroutine InterpolateCls
 
-#include "openaccfunc.f90"
+#include "openaccfunc_minimal.f90"
 
     end module CAMBmain

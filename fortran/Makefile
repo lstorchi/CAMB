@@ -1,9 +1,9 @@
 #CAMB Makefile
 NVCOMP=yes
 OPENACC=yes
-OPENMP=no
+OPENMP=yes
 ACTIVECOMPAREINDEXOF=no
-ACTIVEDEBUGFLAGS=yes
+ACTIVEDEBUGFLAGS=no
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
@@ -98,7 +98,10 @@ else
       COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=deepcopy -Minfo=accel 
       #COMMON_FFLAGS = -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6 -Minfo=accel -cuda
     else
-      COMMON_FFLAGS = -MMD -cpp -Mextend -Minform=warn -Mextend
+      COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -Mextend -Minform=warn -Mextend
+    endif
+    ifeq "$(OPENMP)" "yes"
+      COMMON_FFLAGS += -openmp
     endif
     ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
       FFLAGS = -O0 -g $(COMMON_FFLAGS) 
@@ -108,6 +111,7 @@ else
     ifeq "$(ACTIVECOMPAREINDEXOF)" "yes"
       FFLAGS += -DCOMPARISON
     endif
+
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
     ifeq "$(gfortErr)" "0"

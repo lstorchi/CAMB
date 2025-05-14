@@ -411,7 +411,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
 !    use precision
 !    use model
 !    use results
-#ifndef USEACC
+#ifdef USEOMP
     use omp_lib
 #endif
     implicit none
@@ -441,14 +441,14 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
-#ifndef USEACC
+#ifdef USEOMP
     integer :: omp_thread_num, thread_id
 #endif
 
     !integer :: tocompare
     integer :: startloopidx, endloopidx
 
-#ifndef USEACC
+#ifdef USEOMP
     omp_thread_num = omp_get_max_threads()
     if (omp_thread_num > 1) then
         thread_id = omp_get_thread_num()
@@ -552,6 +552,17 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                        a2=aa(n)
                        bes_ix=bes_index(n)
                       
+#ifdef USEOMP
+                      !print *, "omp_thread_num: ", omp_thread_num
+                      !print *, "thrad_id: ", thread_id
+#endif
+                      !print *, "fac: ", shape(fac)
+                      !print *, "n: ", n
+                      !print *, "ajlin, ajlprin"
+                      !print *, shape(ajlin)
+                      !print *, shape(ajlprin)
+                      !print *, "bes_ix: ", bes_ix
+                      !print *, "j: ", j
                        J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
                            *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
                        J_l = J_l*datasb%s_dpoints(n)
