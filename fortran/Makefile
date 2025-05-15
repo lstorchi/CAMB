@@ -109,7 +109,7 @@ else
       FFLAGS += -DCOMPARISON
     endif
     ifeq "$(OPENMP)" "yes"
-      FFLAGS += -fopenmp
+      FFLAGS += -mp=multicore -fopenmp
     endif
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
