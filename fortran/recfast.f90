@@ -520,7 +520,7 @@
     Calc => this%Calc
 
     select type(State)
-    class is (CAMBdata)
+      class is (CAMBdata)
         Calc%State => State
         Calc%doTspin = DefaultFalse(WantTSpin)
 
@@ -706,7 +706,7 @@
         if (Calc%doTspin) then
             call spline_def(Calc%zrec,Calc%tsrec,nz,Calc%dtsrec)
         end if
-    class default
+      class default
         call MpiStop('Wrong state type')
     end select
 

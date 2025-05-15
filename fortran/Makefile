@@ -109,7 +109,7 @@ else
       FFLAGS += -DCOMPARISON
     endif
     ifeq "$(OPENMP)" "yes"
-      FFLAGS += -mp -openmp
+      FFLAGS += -fopenmp
     endif
   else
     gfortErr = $(shell which gfortran >/dev/null; echo $$?)
@@ -132,9 +132,6 @@ else
       endif
       ifeq "$(ACTIVECOMPAREINDEXOF)" "yes"
         FFLAGS += -DCOMPARISON
-      endif
-      ifeq "$(OPENMP)" "yes"
-        FFLAGS += -fopenmp
       endif
       DEBUGFLAGS = -g -fbacktrace -ffpe-trap=invalid,overflow,zero -fbounds-check $(COMMON_FFLAGS)
       ifeq ($(shell uname -s),Darwin)
@@ -160,6 +157,9 @@ else
       ifndef NONNATIVE
         #Note this seems to make code slightly slower in some cases, use CLUSTER_SAFE=1 to test without
         FFLAGS+=-march=native
+      endif
+      ifeq "$(OPENMP)" "yes"
+        FFLAGS += -fopenmp
       endif
     endif
   endif
