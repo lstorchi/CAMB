@@ -462,7 +462,7 @@
         ! the methods as standalone function 
         ! should use something like  ACC PARALLEL LOOP GANG, VECTOR(4) 
 
-        !$ACC PARALLEL LOOP GANG &
+        !$ACC PARALLEL LOOP &
         !$acc   private(q_ix) &
         !$acc   copyin(ThisCT%ls%l, ThisCT%q%points, &
         !$acc      ThisCT%q%dpoints, ThisSources%Evolve_q%points, &
@@ -493,71 +493,9 @@
 #else
         !$OMP END PARALLEL DO
 #endif
-        !open(100, file='iv_sourcessteps.txt', status='replace')
-        !write(100,*) %iv_sourcessteps
-        !close(100)
-
-        !open(100, file='ddScaledSrc.txt', status='replace')
-        !lb1 = lbound(ddScaledSrc, 1)
-        !lb2 = lbound(ddScaledSrc, 2)
-        !lb3 = lbound(ddScaledSrc, 3)
-        !ub1 = ubound(ddScaledSrc, 1)
-        !ub2 = ubound(ddScaledSrc, 2)
-        !ub3 = ubound(ddScaledSrc, 3)
-        !do i=lb1,ub1
-        !    do j=lb2,ub2
-        !        do k=lb3,ub3
-        !            write(100,*) i,j,k,ddScaledSrc(i,j,k)
-        !        end do
-        !    end do
-        !end do
-        !close(100)
-        !
-        !open(100, file='ScaledSrc.txt', status='replace')
-        !lb1 = lbound(ScaledSrc, 1)
-        !lb2 = lbound(ScaledSrc, 2)
-        !lb3 = lbound(ScaledSrc, 3)
-        !ub1 = ubound(ScaledSrc, 1)
-        !ub2 = ubound(ScaledSrc, 2)
-        !ub3 = ubound(ScaledSrc, 3)
-        !do i=lb1,ub1
-        !    do j=lb2,ub2
-        !        do k=lb3,ub3
-        !            write(100,*) i,j,k,ScaledSrc(i,j,k)
-        !        end do
-        !    end do
-        !end do
-        !close(100)
-
-        !open(100, file='Source_q.txt', status='replace')
-        !do i=1, State%TimeSteps%npoints
-        !    do j=1, ThisSources%SourceNum
-        !        write(100,*) i, j, IV%Source_q(i,j)
-        !    end do  
-        !end do
-        !close(100)
-
-        !open(100, file='ddSource_q.txt', status='replace')
-        !write(100,*) IV%ddSource_q
-        !close(100)
- 
-        !open(100, file='s_points.txt', status='replace')
-        !write(100,*) datasb%s_points
-        !close(100)
-
-        !open(100, file='s_npoints.txt', status='replace')
-        !write(100,*) datasb%s_npoints
-        !close(100)
- 
-! OPEANACC
         call system_clock(end_count, count_rate)
         elapsed_time = real(end_count - start_count) / real(count_rate)
         write(*,*) 'Time taken for main task:', elapsed_time
-        !do i=1,size(bes_ix_check)
-        !    write(*,*) 'bes_ix check:', i, " ==> ", bes_ix_check(i)
-        !end do
-        !deallocate(bes_ix_check)
-        !stop
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if
 
