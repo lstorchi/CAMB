@@ -145,7 +145,8 @@ subroutine SourceToTransfers(datasb, &
    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin)
    !IVSource_q)
 #ifdef USEACC
-!$acc routine vector 
+!acc routine vector 
+!$acc routine vector
 #endif
 !    use CAMBmain
 !    use results
@@ -270,7 +271,8 @@ subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
    IVSource_q) !for particular wave number q
 #ifdef USEACC
-!$acc routine vector
+!acc routine vector
+!$acc routine
 #endif
 
 !    use CAMBmain
