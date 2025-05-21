@@ -500,11 +500,11 @@
     use MiscUtils
     implicit none
     class(TRecfast), target :: this
-#ifndef USEACC
+!#ifndef USEACC
     class(TCAMBdata), target :: State
-#else
-    class(CAMBdata), target :: State
-#endif
+!#else
+!    class(CAMBdata), target :: State
+!#endif
     real(dl) :: Trad,Tmat,Tspin
     integer :: I
     Type(RecombinationData), pointer :: Calc
@@ -523,10 +523,10 @@
     if (.not. allocated(this%Calc)) allocate(this%Calc)
     Calc => this%Calc
 
-#ifndef USEACC
+!#ifndef USEACC
     select type(State)
       class is (CAMBdata)
-#endif
+!#endif
         Calc%State => State
         Calc%doTspin = DefaultFalse(WantTSpin)
 
@@ -712,11 +712,11 @@
         if (Calc%doTspin) then
             call spline_def(Calc%zrec,Calc%tsrec,nz,Calc%dtsrec)
         end if
-#ifndef USEACC
+!#ifndef USEACC
       class default
         call MpiStop('Wrong state type')
     end select
-#endif
+!#endif
 
     end subroutine TRecfast_init
 
