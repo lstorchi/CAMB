@@ -500,7 +500,7 @@
     use MiscUtils
     implicit none
     class(TRecfast), target :: this
-    class(CAMBdata), target :: State
+    class(TCAMBdata), target :: State
     real(dl) :: Trad,Tmat,Tspin
     integer :: I
     Type(RecombinationData), pointer :: Calc
