@@ -494,7 +494,12 @@
         !$OMP END PARALLEL DO
 #endif
         call system_clock(end_count, count_rate)
-        elapsed_time = real(end_count - start_count) / real(count_rate)
+
+        if (end_time < start_time) then
+          elapsed_time = (real(clock_max - start_time) + real(end_time) + 1.0) / real(clock_rate)
+        else
+          elapsed_time = real(end_time - start_time) / real(clock_rate)
+        end if
         write(*,*) 'Time taken for main task:', elapsed_time
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if

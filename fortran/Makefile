@@ -3,7 +3,7 @@ NVCOMP=yes
 OPENACC=yes
 OPENMP=no
 ACTIVECOMPAREINDEXOF=no
-ACTIVEDEBUGFLAGS=yes
+ACTIVEDEBUGFLAGS=no
 NONNATIVE=1
 
 #Set FISHER=Y to compile bispectrum fisher matrix code
