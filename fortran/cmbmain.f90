@@ -291,7 +291,8 @@
     Type(ClTransferData) :: ThisCT 
     integer q_ix
     Type(TTimer) :: Timer
-    integer :: start_count, end_count, count_rate, bes_ix
+    integer :: bes_ix
+    integer :: start_time, end_time, clock_rate, clock_max
     real :: elapsed_time
     type(IntegrationVars) :: IV
     
@@ -345,7 +346,7 @@
 
         !Begin k-loop and integrate Sources*Bessels over time
 ! OPEANACC
-        call system_clock(start_count, count_rate)
+        !call system_clock(start_count, count_rate)
 
         ! transfor State and BessRanges into functions and data 
         flush (6)
@@ -447,12 +448,18 @@
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
         xlimminin = xlimmin
-        call system_clock(end_count, count_rate)
-        elapsed_time = real(end_count - start_count) / real(count_rate)
-        write(*,*) 'Time taken to copy data CPU-CPU:', elapsed_time
+        !call system_clock(end_count, count_rate)
+        !elapsed_time = real(end_count - start_count) / real(count_rate)
+        !write(*,*) 'Time taken to copy data CPU-CPU:', elapsed_time
         ! at the end we will need to avoid the CPU to CPU copy if possible 
 
-        call system_clock(start_count, count_rate)
+        call system_clock(count_rate=clock_rate, count_max=clock_max)
+        if (clock_rate == 0) then
+          print *, "Error: System clock rate is zero. Cannot measure time."
+          stop
+        end if
+        call system_clock(count=start_time)
+
         write (*,*) 'Start SourceToTransfers'
         flush (6)
         !allocate(bes_ix_check(2000))
@@ -493,8 +500,7 @@
 #else
         !$OMP END PARALLEL DO
 #endif
-        call system_clock(end_count, count_rate)
-
+        call system_clock(count=end_time)
         if (end_time < start_time) then
           elapsed_time = (real(clock_max - start_time) + real(end_time) + 1.0) / real(clock_rate)
         else
