@@ -1,7 +1,7 @@
 ! START OPENACC
 
 #define  IVSQROWS 3600
-#define  IVSQCOLS 4
+#define  IVSQCOLS 3
 
 #ifndef ONLYFLAT
 subroutine spline_def_local (x,y,n,d2)
@@ -271,8 +271,8 @@ subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
    IVSource_q) !for particular wave number q
 #ifdef USEACC
-!acc routine vector
-!$acc routine
+!$acc routine vector
+!acc routine
 #endif
 
 !    use CAMBmain
@@ -316,8 +316,8 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
    IVSource_q)
 #ifdef USEACC
-!acc routine vector
-!$acc routine
+!$acc routine vector
+!acc routine
 #endif
 
 !    use CAMBmain
@@ -351,6 +351,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    integer custom_source_off, s_ix
    integer nwin
    real(dl) :: BessIntBoost
+   real(dl) :: temp_sum1, temp_sum2, temp_sum3
 
    !integer :: tocompare
    integer :: startloopidx, endloopidx
@@ -369,6 +370,85 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
       fac(j)=fac(j)**2*aa(j)/6
    end do
 
+#if 1
+   do j=1,max_bessels_l_indexin
+     if (ThisCT%ls%l(j) > llmax) return
+     xlim=xlimfracin*ThisCT%ls%l(j)
+     xlim=max(xlim,xlimminin)
+     xlim=ThisCT%ls%l(j)-xlim
+     xlmax1=80*ThisCT%ls%l(j)*BessIntBoost
+     tmin=datasb%s_tau0-xlmax1/privateindexes%iv_q
+     tmin=max(datasb%s_points(2),tmin)
+     tmax=datasb%s_tau0-xlim/privateindexes%iv_q
+     tmax=min(datasb%s_tau0,tmax)
+     tmin=max(datasb%s_points(2),tmin)
+     if (tmax < datasb%s_points(2)) exit
+     
+     ! Initialize sums array and temporary scalar sums for each j iteration
+     sums = 0.0_dl
+     temp_sum1 = 0.0_dl
+     temp_sum2 = 0.0_dl
+     temp_sum3 = 0.0_dl
+   
+     qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/datasb%s_tau0*1.2
+     DoInt = .not. datasb%cp_want_scalars .or. privateindexes%iv_q < qmax_int
+   
+     if (DoInt) then
+       startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
+           datasb%s_npoints, datasb%s_Highest, tmin)
+       endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
+           datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
+   
+       ! Apply reduction to scalar temporaries in the n-loop
+       !$acc loop reduction(+:temp_sum1, temp_sum2, temp_sum3) 
+       do n=startloopidx,endloopidx
+         a2=aa(n)
+         bes_ix=bes_index(n)
+   
+         J_l=a2*ajlin(bes_ix,j)+(1-a2)*(ajlin(bes_ix+1,j) - ((a2+1) &
+             *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
+         J_l = J_l*datasb%s_dpoints(n)
+   
+         temp_sum1 = temp_sum1 + IVSource_q(n,1)*J_l
+         temp_sum2 = temp_sum2 + IVSource_q(n,2)*J_l
+         temp_sum3 = temp_sum3 + IVSource_q(n,3)*J_l
+       end do
+       
+       ! After the n-loop, update the sums array with the reduced scalar values
+       sums(1) = temp_sum1
+       sums(2) = temp_sum2
+       sums(3) = temp_sum3
+     end if
+   
+     ! This section updates sums(3) based on different logic.
+     ! It's a direct assignment, not an accumulation within a parallel loop,
+     ! so it should be fine with respect to the *reported* error.
+     if (.not. DoInt .or. UseLimberGPU(ThisCT%ls%l(j), datasb) &
+         .and. datasb%cp_want_scalars) then
+       xf = datasb%s_tau0-(ThisCT%ls%l(j)+0.5_dl)/privateindexes%iv_q
+       if (xf < datasb%s_highest .and. xf > datasb%s_lowest) then
+         n=statbesseindexof (datasb%s_count, datasb%s_R, &
+             datasb%s_npoints, datasb%s_Highest, xf)
+         xf= (xf-datasb%s_points(n))/(datasb%s_points(n+1)-datasb%s_points(n))
+         sums(3) = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
+             sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/privateindexes%iv_q
+       else
+         sums(3)=0.0_dl
+       end if
+     end if
+   
+     ! This final update might need !$acc atomic update if multiple 'j' iterations
+     ! (gangs) could write to the same elements of ThisCT%Delta_p_l_k simultaneously.
+     ! However, this is a separate issue from the error reported for 'sums(:)'.
+     !$acc atomic update
+     ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) + sums(1)
+     !$acc atomic update
+     ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) + sums(2)
+     !$acc atomic update
+     ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) + sums(3)
+     !ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
+   end do
+#else
    do j=1,max_bessels_l_indexin
       if (ThisCT%ls%l(j) > llmax) return
       xlim=xlimfracin*ThisCT%ls%l(j)
@@ -417,9 +497,11 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
             sums(3)=0
          end if
       end if
+      
 
       ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
    end do
+#endif
 
 end subroutine DoFlatIntegration
 
