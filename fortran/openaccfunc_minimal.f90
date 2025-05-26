@@ -240,7 +240,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    privateindexes%iv_sourcessteps = 0
 
 #ifdef EXTRAVECTOR
-   local_step = 1 
+   local_step = 2 
    step = 2
    !$acc loop vector reduction(max:local_step)
    do i=2, datasb%s_npoints
@@ -273,7 +273,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
        end if
     end if
   end do
-  !$acc end loop ! Explicitly end loop directive if needed
+  !$acc end loop 
 
   step = local_step ! Assign the final max value to step
   privateindexes%iv_sourcessteps = step
