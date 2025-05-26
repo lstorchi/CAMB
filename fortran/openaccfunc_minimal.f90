@@ -276,6 +276,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
   !$acc end loop ! Explicitly end loop directive if needed
 
   step = local_step ! Assign the final max value to step
+  privateindexes%iv_sourcessteps = step
 
 #else
    step = 2
