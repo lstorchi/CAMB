@@ -3,6 +3,8 @@
 #define  IVSQROWS 3600
 #define  IVSQCOLS 3
 
+#define EXTRAVECTOR 1
+
 #ifndef ONLYFLAT
 subroutine spline_def_local (x,y,n,d2)
    !Low-level initialize spline arrays with default boundary conditions
@@ -216,7 +218,10 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    integer :: ixunit
    !double precision , allocatable, dimension(:,:) :: IVSource_q
    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
-   
+#ifdef EXTRAVECTOR
+   integer :: local_step
+#endif
+
    klo=1
    do while ((privateindexes%iv_q > ThisSourcesin%Evolve_q%points(klo+1)).and.&
       (klo < (ThisSourcesin%Evolve_q%npoints-1)))
@@ -234,8 +239,43 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    ixunit = privateindexes%iv_q_ix
    privateindexes%iv_sourcessteps = 0
 
-  step = 2
-  do i=2, datasb%s_npoints
+#ifdef EXTRAVECTOR
+   local_step = 1 
+   step = 2
+   !$acc loop vector reduction(max:local_step)
+   do i=2, datasb%s_npoints
+     xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
+     IVSource_q(i,:) = 0.0_dl ! Initialize to 0 first
+     
+     ! --- Check Tensor Condition ---
+     if (datasb%cp_want_tensors) then
+       if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
+         IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i)+&
+                           b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
+                           b03*ddScaledSrcin(khi,:,i)) * ho2o6
+         local_step = i ! Update local_step if condition met
+       end if
+     end if
+   
+     ! --- Check Scalar Condition (can overwrite IVSource_q but it's the same formula) ---
+     if (datasb%cp_want_scalars) then
+       if ((DebugEvolutionin .or. WantLateTimein .or. &
+            privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
+            .and. xf > 1.e-8_dl) then
+         IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  &
+                           b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                           b03 * ddScaledSrcin(khi,:,i)) * ho2o6
+         local_step = i ! Update local_step if condition met
+       end if
+    end if
+  end do
+  !$acc end loop ! Explicitly end loop directive if needed
+
+  step = local_step ! Assign the final max value to step
+
+#else
+   step = 2
+   do i=2, datasb%s_npoints
       xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
 
       if (datasb%cp_want_tensors) then
@@ -263,6 +303,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
       end if
    end do
    privateindexes%iv_sourcessteps = step
+#endif 
 
 end subroutine InterpolateSources
 
@@ -370,7 +411,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
       fac(j)=fac(j)**2*aa(j)/6
    end do
 
-#if 1
+#ifdef EXTRAVECTOR
    do j=1,max_bessels_l_indexin
      if (ThisCT%ls%l(j) > llmax) return
      xlim=xlimfracin*ThisCT%ls%l(j)
@@ -385,7 +426,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
      if (tmax < datasb%s_points(2)) exit
      
      ! Initialize sums array and temporary scalar sums for each j iteration
-     sums = 0.0_dl
+     !sums = 0.0_dl
      temp_sum1 = 0.0_dl
      temp_sum2 = 0.0_dl
      temp_sum3 = 0.0_dl
@@ -498,7 +539,6 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
          end if
       end if
       
-
       ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
    end do
 #endif
