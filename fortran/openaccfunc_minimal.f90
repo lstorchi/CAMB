@@ -254,6 +254,8 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
                            b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                            b03*ddScaledSrcin(khi,:,i)) * ho2o6
          local_step = i ! Update local_step if condition met
+       else
+         IVSource_q(i,:) = 0.0_dl ! Set to zero if condition not met
        end if
      end if
    
@@ -266,6 +268,8 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
                            b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
                            b03 * ddScaledSrcin(khi,:,i)) * ho2o6
          local_step = i ! Update local_step if condition met
+       else
+         IVSource_q(i,:) = 0.0_dl ! Set to zero if condition not met
        end if
     end if
   end do
