@@ -250,33 +250,28 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
      ! --- Check Tensor Condition ---
      if (datasb%cp_want_tensors) then
        if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
-         IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i)+&
+          IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i)+&
                            b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                            b03*ddScaledSrcin(khi,:,i)) * ho2o6
-         local_step = i ! Update local_step if condition met
-       else
-         IVSource_q(i,:) = 0.0_dl ! Set to zero if condition not met
-       end if
-     end if
-   
+          local_step = i ! Update local_step if condition met
+        end if
+      end if
      ! --- Check Scalar Condition (can overwrite IVSource_q but it's the same formula) ---
-     if (datasb%cp_want_scalars) then
-       if ((DebugEvolutionin .or. WantLateTimein .or. &
+      if (datasb%cp_want_scalars) then
+        if ((DebugEvolutionin .or. WantLateTimein .or. &
             privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
             .and. xf > 1.e-8_dl) then
-         IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  &
+          IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  &
                            b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
                            b03 * ddScaledSrcin(khi,:,i)) * ho2o6
-         local_step = i ! Update local_step if condition met
-       else
-         IVSource_q(i,:) = 0.0_dl ! Set to zero if condition not met
-       end if
-    end if
-  end do
-  !$acc end loop 
+          local_step = i ! Update local_step if condition met
+        end if
+      end if
+   end do
+   !$acc end loop 
 
-  step = local_step ! Assign the final max value to step
-  privateindexes%iv_sourcessteps = step
+   step = local_step ! Assign the final max value to step
+   privateindexes%iv_sourcessteps = step
 
 #else
    step = 2
