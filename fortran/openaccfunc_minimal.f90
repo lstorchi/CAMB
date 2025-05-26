@@ -56,7 +56,7 @@ end subroutine spline_def_local
 
 function statbesseindexof (count, R, npoints, Highest, tau)
 #ifdef USEACC
-!$acc routine seq
+!$acc routine vector
 #endif
    use RangeUtils
    !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
@@ -93,7 +93,7 @@ end function statbesseindexof
 
 function staterofchi (flat, closed, chi)
 #ifdef USEACC
-!$ACC ROUTINE SEQ
+!$ACC ROUTINE
 #endif
    logical, intent(in) :: flat, closed
    double precision , intent(in) :: chi
@@ -113,7 +113,7 @@ end function staterofchi
 
 function UseLimberGPU(l,  datasb)
 #ifdef USEACC
-!$ACC ROUTINE SEQ
+!$ACC ROUTINE
 #endif
    !Calculate lensing potential power using Limber rather than j_l integration
    !even when sources calculated as part of temperature calculation
@@ -145,8 +145,8 @@ subroutine SourceToTransfers(datasb, &
    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin)
    !IVSource_q)
 #ifdef USEACC
-!acc routine vector 
-!$acc routine vector
+!$acc routine vector 
+!acc routine 
 #endif
 !    use CAMBmain
 !    use results
@@ -196,7 +196,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
    privateindexes, IVSource_q)
 #ifdef USEACC
-!$acc routine 
+!$acc routine vector
 #endif
 
 !    use CAMBmain
@@ -216,7 +216,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    integer :: ixunit
    !double precision , allocatable, dimension(:,:) :: IVSource_q
    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
-
+   
    klo=1
    do while ((privateindexes%iv_q > ThisSourcesin%Evolve_q%points(klo+1)).and.&
       (klo < (ThisSourcesin%Evolve_q%npoints-1)))
@@ -234,8 +234,8 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    ixunit = privateindexes%iv_q_ix
    privateindexes%iv_sourcessteps = 0
 
-   step=2
-   do i=2, datasb%s_npoints
+  step = 2
+  do i=2, datasb%s_npoints
       xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
 
       if (datasb%cp_want_tensors) then
