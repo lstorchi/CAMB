@@ -239,38 +239,38 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    ixunit = privateindexes%iv_q_ix
    privateindexes%iv_sourcessteps = 0
 
-!#ifdef EXTRAVECTOR
-!   local_step = 2 
-!   step = 2
-!   !$acc loop vector reduction(max:local_step)
-!   do i=2, datasb%s_npoints
-!     xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
-!     IVSource_q(i,:) = 0.0_dl ! Initialize to 0 first
-!     if (datasb%cp_want_tensors) then
-!       if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin .and. &
-!         xf > 1.e-8_dl) then
-!          IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i)+&
-!                           b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
-!                           b03*ddScaledSrcin(khi,:,i)) * ho2o6
-!          local_step = i ! Update local_step if condition met
-!        end if
-!      end if
-!      if (datasb%cp_want_scalars) then
-!        if ((DebugEvolutionin .or. WantLateTimein .or. &
-!            privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
-!            .and. xf > 1.e-8_dl) then
-!          IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  &
-!                           b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
-!                           b03 * ddScaledSrcin(khi,:,i)) * ho2o6
-!          local_step = i ! Update local_step if condition met
-!        end if
-!      end if
-!   end do
-!   !$acc end loop 
+#ifdef EXTRAVECTOR
+   local_step = 2 
+   step = 2
+   !$acc loop vector reduction(max:local_step)
+   do i=2, datasb%s_npoints
+     xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
+     IVSource_q(i,:) = 0.0_dl ! Initialize to 0 first
+     if (datasb%cp_want_tensors) then
+       if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin .and. &
+         xf > 1.e-8_dl) then
+          IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i)+&
+                           b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
+                           b03*ddScaledSrcin(khi,:,i)) * ho2o6
+          local_step = i ! Update local_step if condition met
+        end if
+      end if
+      if (datasb%cp_want_scalars) then
+        if ((DebugEvolutionin .or. WantLateTimein .or. &
+            privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
+            .and. xf > 1.e-8_dl) then
+          IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  &
+                           b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
+                           b03 * ddScaledSrcin(khi,:,i)) * ho2o6
+          local_step = i ! Update local_step if condition met
+        end if
+      end if
+   end do
+   !$acc end loop 
 
-!   step = local_step ! Assign the final max value to step
-!   privateindexes%iv_sourcessteps = step
-!#else
+   step = local_step ! Assign the final max value to step
+   privateindexes%iv_sourcessteps = step
+#else
    step = 2
    do i=2, datasb%s_npoints
       xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
@@ -300,7 +300,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
       end if
    end do
    privateindexes%iv_sourcessteps = step
-!#endif 
+#endif 
 
 end subroutine InterpolateSources
 
