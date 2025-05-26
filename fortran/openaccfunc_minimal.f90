@@ -58,7 +58,7 @@ end subroutine spline_def_local
 
 function statbesseindexof (count, R, npoints, Highest, tau)
 #ifdef USEACC
-!$acc routine vector
+!$acc routine
 #endif
    use RangeUtils
    !statein%TimeSteps%IndexOf  RangeUtils.f90 procedure :: IndexOf => TRanges_IndexOf
