@@ -444,7 +444,7 @@
         print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
         print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
         print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
-
+        print *, "                     datasb%s_npoints: ", datasb%s_npoints
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
         xlimminin = xlimmin
