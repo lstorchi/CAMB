@@ -423,7 +423,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
      if (tmax < datasb%s_points(2)) exit
      
      ! Initialize sums array and temporary scalar sums for each j iteration
-     !sums = 0.0_dl
+     sums = 0.0_dl
      temp_sum1 = 0.0_dl
      temp_sum2 = 0.0_dl
      temp_sum3 = 0.0_dl
