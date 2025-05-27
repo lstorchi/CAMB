@@ -242,6 +242,8 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
 #ifdef EXTRAVECTOR
    local_step = 2 
    step = 2
+   ! if GNU
+   !acc parallel loop vector reduction(max:local_step)
    !$acc loop vector reduction(max:local_step)
    do i=2, datasb%s_npoints
      xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
@@ -266,7 +268,9 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
         end if
       end if
    end do
-   !$acc end loop 
+   !$acc end loop
+   ! if GNU
+   !acc end parallel loop 
 
    step = local_step ! Assign the final max value to step
    privateindexes%iv_sourcessteps = step
@@ -438,6 +442,8 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
            datasb%s_R, datasb%s_npoints, datasb%s_Highest, tmax))
    
        ! Apply reduction to scalar temporaries in the n-loop
+       ! if uysiing GNU
+       !acc parallel loop reduction(+:temp_sum1, temp_sum2, temp_sum3) 
        !$acc loop reduction(+:temp_sum1, temp_sum2, temp_sum3) 
        do n=startloopidx,endloopidx
          a2=aa(n)

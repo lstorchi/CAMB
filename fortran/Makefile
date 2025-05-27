@@ -120,9 +120,13 @@ else
       COMPILER = gfortran
       F90C     = gfortran
       ifeq "$(OPENMP)" "yes"
-        COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
+        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4 -fopenmp
       else
-        COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -ffree-line-length-none -fmax-errors=4
+        COMMON_FFLAGS = -MMD -cpp -ffree-line-length-none -fmax-errors=4
+      endif
+      ifeq "$(OPENACC)" "yes"
+        #COMMON_FFLAGS += -fopenacc -foffload=nvptx-none
+        COMMON_FFLAGS += -fopenacc -foffload=-fno-openmp
       endif
       # Using -ffast-math causes differences between Debug and Release configurations.
       ifeq "$(ACTIVEDEBUGFLAGS)" "yes"
