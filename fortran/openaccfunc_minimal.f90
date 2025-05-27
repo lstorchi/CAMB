@@ -387,7 +387,10 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    real(dl) xlim,xlmax1
    real(dl) tmin, tmax
    real(dl) a2, J_l, aa(privateindexes%iv_sourcessteps), fac(privateindexes%iv_sourcessteps)
-   real(dl) xf, sums(datasb%ttsources_sourcenum)
+   real(dl) xf
+#ifndef EXTRAVECTOR
+   real(dl) sums(datasb%ttsources_sourcenum)
+#endif
    real(dl) qmax_int
    integer bes_ix,n, bes_index(privateindexes%iv_sourcessteps)
    integer custom_source_off, s_ix
@@ -427,7 +430,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
      if (tmax < datasb%s_points(2)) exit
      
      ! Initialize sums array and temporary scalar sums for each j iteration
-     sums = 0.0_dl
+     !sums = 0.0_dl
      temp_sum1 = 0.0_dl
      temp_sum2 = 0.0_dl
      temp_sum3 = 0.0_dl
@@ -459,9 +462,9 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
        end do
        
        ! After the n-loop, update the sums array with the reduced scalar values
-       sums(1) = temp_sum1
-       sums(2) = temp_sum2
-       sums(3) = temp_sum3
+       !sums(1) = temp_sum1
+       !sums(2) = temp_sum2
+       !sums(3) = temp_sum3
      end if
    
      ! This section updates sums(3) based on different logic.
@@ -474,10 +477,10 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
          n=statbesseindexof (datasb%s_count, datasb%s_R, &
              datasb%s_npoints, datasb%s_Highest, xf)
          xf= (xf-datasb%s_points(n))/(datasb%s_points(n+1)-datasb%s_points(n))
-         sums(3) = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
+         temp_sum3 = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
              sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/privateindexes%iv_q
        else
-         sums(3)=0.0_dl
+         temp_sum3 = 0.0_dl
        end if
      end if
    
@@ -485,11 +488,14 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
      ! (gangs) could write to the same elements of ThisCT%Delta_p_l_k simultaneously.
      ! However, this is a separate issue from the error reported for 'sums(:)'.
      !$acc atomic update
-     ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) + sums(1)
+     ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) = &
+       ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) + temp_sum1
      !$acc atomic update
-     ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) + sums(2)
+     ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) = &
+       ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) + temp_sum2
      !$acc atomic update
-     ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) + sums(3)
+     ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) = & 
+       ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) + temp_sum3
      !ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
    end do
 #else
