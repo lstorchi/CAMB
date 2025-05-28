@@ -73,6 +73,15 @@ subroutine SourceToTransfers(datasb, &
    double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
    !call IntegrationVars_Init(IV, datasb)
    ! to avoid a call
+   ! local data to avoid a call to IntegrationVars_Init
+   integer i,khi,klo, step
+   real(dl) xf,b0,ho,a0,ho2o6,a03,b03
+   integer :: ixunit
+   integer :: local_step
+   !local data to avoid a call to DoSourceIntegration
+   integer :: j,ll,llmax
+   real(dl) nu
+   real(dl) :: sixpibynu
 
    IVSource_q(1,:)=0
    IVSource_q(datasb%s_npoints,:) = 0
@@ -81,46 +90,6 @@ subroutine SourceToTransfers(datasb, &
    privateindexes%iv_q_ix = q_ix
    privateindexes%iv_q = ThisCT%q%points(q_ix)
    privateindexes%iv_dq = ThisCT%q%dpoints(q_ix)
-
-   call InterpolateSources(ThisSourcesin, ScaledSrcin, ddScaledSrcin, &
-      max_etak_tensorin, max_etak_vectorin, WantLateTimein, max_etak_scalarin, &
-      datasb, DebugEvolutionin, privateindexes, IVSource_q)
-
-   call DoSourceIntegration(ThisCT, ThisSourcesin, &
-      full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-      datasb,xlimfracin,xlimminin,ajlin,ajlprin, &
-      privateindexes, IVSource_q)
-
-end subroutine SourceToTransfers
-
-
-subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
-   ddScaledSrcin, max_etak_tensorin, max_etak_vectorin, &
-   WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
-   privateindexes, IVSource_q)
-#ifdef USEACC
-!$acc routine vector
-#endif
-
-!    use CAMBmain
-!    use results
-
-   implicit none
-   Type(TTimeSources) :: ThisSourcesin
-   real(dl), dimension(:,:,:) :: ScaledSrcin
-   real(dl), dimension(:,:,:) :: ddScaledSrcin
-   real(dl) :: max_etak_tensorin, max_etak_vectorin, max_etak_scalarin
-   logical :: WantLateTimein
-   type(datastatebessel) :: datasb
-   logical :: DebugEvolutionin
-   type(PrivateIdxs) :: privateindexes
-   double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
-
-   ! local data
-   integer i,khi,klo, step
-   real(dl) xf,b0,ho,a0,ho2o6,a03,b03
-   integer :: ixunit
-   integer :: local_step
 
    klo=1
    do while ((privateindexes%iv_q > ThisSourcesin%Evolve_q%points(klo+1)).and.&
@@ -174,38 +143,6 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
    step = local_step ! Assign the final max value to step
    privateindexes%iv_sourcessteps = step
 
-end subroutine InterpolateSources
-
-subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
-   full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-   datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
-   IVSource_q) !for particular wave number q
-#ifdef USEACC
-!$acc routine vector
-!acc routine
-#endif
-
-!    use CAMBmain
-!    use precision
-!    use model
-!    use results
-
-   implicit none
-   Type(ClTransferData) :: ThisCT
-   Type(TTimeSources) :: ThisSourcesin
-   logical :: full_bessel_integrationin, do_bispectrumin
-   integer :: max_bessels_l_indexin
-   type(datastatebessel) :: datasb
-   real(dl) :: xlimfracin, xlimminin
-   real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
-   type(PrivateIdxs) :: privateindexes
-   double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
-
-   !local data
-   integer :: j,ll,llmax
-   real(dl) nu
-   real(dl) :: sixpibynu
-
    nu=privateindexes%iv_q*datasb%s_curvature_radius
    sixpibynu  = 6._dl*3.1415926535897932384626433832795_dl/nu
 
@@ -220,8 +157,7 @@ subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
       full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
       datasb,xlimfracin,xlimminin,ajlin,ajlprin,privateindexes, IVSource_q)
 
-end subroutine DoSourceIntegration
-
+end subroutine SourceToTransfers
 
 subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
