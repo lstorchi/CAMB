@@ -293,7 +293,7 @@
     Type(TTimer) :: Timer
     integer :: bes_ix
     integer :: start_time, end_time, clock_rate, clock_max
-    real :: elapsed_time
+    real :: elapsed_time, start, finish
     type(IntegrationVars) :: IV
     
     ! data to be transfer from state and besse ranges
@@ -351,17 +351,17 @@
         ! transfor State and BessRanges into functions and data 
         flush (6)
         if (allocated(State%TimeSteps%points)) then
-            print *, "allocated: ", size(State%TimeSteps%points)
+            !print *, "allocated: ", size(State%TimeSteps%points)
             allocate(datasb%s_points( size(State%TimeSteps%points) ))
             datasb%s_points = State%TimeSteps%points
         end if
         if (allocated(State%TimeSteps%dpoints)) then
-            print *, "allocated: ", size(State%TimeSteps%dpoints)
+            !print *, "allocated: ", size(State%TimeSteps%dpoints)
             allocate(datasb%s_dpoints( size(State%TimeSteps%dpoints) ))
             datasb%s_dpoints = State%TimeSteps%dpoints
         end if
         if (allocated(BessRanges%points)) then
-            print *, "allocated: ", size(BessRanges%points)
+            !print *, "allocated: ", size(BessRanges%points)
             allocate(datasb%b_points( size(BessRanges%points) ))
             datasb%b_points = BessRanges%points
         end if
@@ -370,12 +370,12 @@
         datasb%s_count = State%TimeSteps%count
         datasb%b_count = BessRanges%count
         if (allocated(State%TimeSteps%R)) then
-            print *, "allocated: ", size(State%TimeSteps%R)
+            !print *, "allocated: ", size(State%TimeSteps%R)
             allocate(datasb%s_r( size(State%TimeSteps%R) ))
             datasb%s_r = State%TimeSteps%R
         end if
         if (allocated(BessRanges%R)) then
-            print *, "allocated: ", size(BessRanges%R)
+            !print *, "allocated: ", size(BessRanges%R)
             allocate(datasb%b_r( size(BessRanges%R) ))
             datasb%b_r = BessRanges%R
         end if
@@ -421,32 +421,32 @@
         datasb%cp_accuracy_liber_boost = CP%Accuracy%LimberBoost
         DebugEvolutionin = DebugEvolution
 
-        print *, "allocated ajl: ", allocated(ajl), " size " , size(ajl), &
-            " shape: ", shape(ajl)
-        print *, "allocated ajlpr: ", allocated(ajlpr), " size " , size(ajlpr), &
-            " shape: ", shape(ajlpr)
+        !print *, "allocated ajl: ", allocated(ajl), " size " , size(ajl), &
+        !    " shape: ", shape(ajl)
+        !print *, "allocated ajlpr: ", allocated(ajlpr), " size " , size(ajlpr), &
+        !    " shape: ", shape(ajlpr)
 
         ! I should allocate this only in the GPU
         IVSource_qrows = State%TimeSteps%npoints
         IVSource_qcols = ThisSources%SourceNum
         !allocate(IVSource_q(IVSource_qrows, IVSource_qcols))
-        print *, "                       IVSource_qrows: ", IVSource_qrows
-        print *, "                       IVSource_qcols: ", IVSource_qcols
+        !print *, "                       IVSource_qrows: ", IVSource_qrows
+        !print *, "                       IVSource_qcols: ", IVSource_qcols
         !print *, "                 allocated IVSource_q: ", allocated(IVSource_q), " size " , size(IVSource_q)
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
         !print *, "               datasb%iv_sourcessteps: ", datasb%iv_sourcessteps
-        print *, "                allocated ThisCT%ls%l: ", allocated(ThisCT%ls%l), " size " , size(ThisCT%ls%l)
-        print *, "         allocated ThisCT%delta_p_l_k: ", allocated(ThisCT%delta_p_l_k), " size " , size(ThisCT%delta_p_l_k)
-        print *, "allocated ThisSources%Evolve_q%points: ", allocated(ThisSources%Evolve_q%points), " size " , size(ThisSources%Evolve_q%points)
-        print *, "            allocated datasb%s_points: ", allocated(datasb%s_points), " size " , size(datasb%s_points)
-        print *, "           allocated datasb%s_dpoints: ", allocated(datasb%s_dpoints), " size " , size(datasb%s_dpoints)
-        print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
-        print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
-        print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
-        print *, "                     datasb%s_npoints: ", datasb%s_npoints
-        print *, "          datasb%cp_st_limber_windows: ", datasb%cp_st_limber_windows
-        print *, "                       datasb%b_count: ", datasb%b_count
+        !print *, "                allocated ThisCT%ls%l: ", allocated(ThisCT%ls%l), " size " , size(ThisCT%ls%l)
+        !print *, "         allocated ThisCT%delta_p_l_k: ", allocated(ThisCT%delta_p_l_k), " size " , size(ThisCT%delta_p_l_k)
+        !print *, "allocated ThisSources%Evolve_q%points: ", allocated(ThisSources%Evolve_q%points), " size " , size(ThisSources%Evolve_q%points)
+        !print *, "            allocated datasb%s_points: ", allocated(datasb%s_points), " size " , size(datasb%s_points)
+        !print *, "           allocated datasb%s_dpoints: ", allocated(datasb%s_dpoints), " size " , size(datasb%s_dpoints)
+        !print *, "            allocated datasb%b_points: ", allocated(datasb%b_points), " size " , size(datasb%b_points)
+        !print *, "                 allocated datasb%s_r: ", allocated(datasb%s_r), " size " , size(datasb%s_r)
+        !print *, "                 allocated datasb%b_r: ", allocated(datasb%b_r), " size " , size(datasb%b_r)
+        !print *, "                     datasb%s_npoints: ", datasb%s_npoints
+        !print *, "          datasb%cp_st_limber_windows: ", datasb%cp_st_limber_windows
+        !print *, "                       datasb%b_count: ", datasb%b_count
         write (*,*) 'Start ThisCT%q%npoints', ThisCT%q%npoints
         xlimfracin = xlimfrac
         xlimminin = xlimmin
@@ -461,6 +461,7 @@
           stop
         end if
         call system_clock(count=start_time)
+        call cpu_time(start)
 
         write (*,*) 'Start SourceToTransfers'
         flush (6)
@@ -502,13 +503,16 @@
 #else
         !$OMP END PARALLEL DO
 #endif
+        call cpu_time(finish)
         call system_clock(count=end_time)
         if (end_time < start_time) then
+          write(*,*) 'end_time < start_time', end_time, start_time, clock_rate, clock_max
           elapsed_time = (real(clock_max - start_time) + real(end_time) + 1.0) / real(clock_rate)
         else
           elapsed_time = real(end_time - start_time) / real(clock_rate)
         end if
-        write(*,*) 'Time taken for main task:', elapsed_time
+        write(*,'(a,1x,f12.5)') '    Time taken for main task:', elapsed_time
+        write(*,'(a,1x,f12.5)') 'CPU Time taken for main task:', finish-start
         if (DebugMsgs .and. Feedbacklevel > 0) call Timer%WriteTime('Timing for Integration')
     end if
 
