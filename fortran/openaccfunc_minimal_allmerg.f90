@@ -49,7 +49,6 @@ subroutine SourceToTransfers(datasb, &
    !IVSource_q)
 #ifdef USEACC
 !$acc routine vector 
-!acc routine 
 #endif
 !    use CAMBmain
 !    use results
@@ -82,6 +81,20 @@ subroutine SourceToTransfers(datasb, &
    integer :: j,ll,llmax
    real(dl) nu
    real(dl) :: sixpibynu
+   ! local data to avoid a call to DoFlatIntegration
+   !integer j
+   logical DoInt
+   real(dl) xlim,xlmax1
+   real(dl) tmin, tmax
+   real(dl) a2, J_l, aa(privateindexes%iv_sourcessteps), fac(privateindexes%iv_sourcessteps)
+   real(dl) xf
+   real(dl) qmax_int
+   integer bes_ix,n, bes_index(privateindexes%iv_sourcessteps)
+   integer custom_source_off, s_ix
+   integer nwin
+   real(dl) :: BessIntBoost
+   real(dl) :: temp_sum1, temp_sum2, temp_sum3
+   integer :: startloopidx, endloopidx
 
    IVSource_q(1,:)=0
    IVSource_q(datasb%s_npoints,:) = 0
@@ -153,54 +166,7 @@ subroutine SourceToTransfers(datasb, &
       llmax = nint(nu*(datasb%s_tau0/datasb%s_curvature_radius + sixpibynu))
    end if
 
-   call DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
-      full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-      datasb,xlimfracin,xlimminin,ajlin,ajlprin,privateindexes, IVSource_q)
-
-end subroutine SourceToTransfers
-
-subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
-   full_bessel_integrationin, do_bispectrumin, max_bessels_l_indexin, &
-   datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
-   IVSource_q)
-#ifdef USEACC
-!$acc routine vector
-#endif
-
-!    use CAMBmain
-!    use precision
-!    use model
-!    use results
-   implicit none
-
-   ! input
-   Type(ClTransferData) :: ThisCT
-   integer llmax
-   Type(TTimeSources) :: ThisSourcesin
-   logical :: full_bessel_integrationin, do_bispectrumin
-   integer :: max_bessels_l_indexin
-   type(datastatebessel) :: datasb
-   real(dl) xlimfracin, xlimminin
-   real(dl), dimension(:,:), allocatable, intent(inout) :: ajlin, ajlprin
-   type(PrivateIdxs) :: privateindexes
-   !double precision , allocatable, dimension(:,:) :: IVSource_q
-   double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
-
    ! local vars
-   integer j
-   logical DoInt
-   real(dl) xlim,xlmax1
-   real(dl) tmin, tmax
-   real(dl) a2, J_l, aa(privateindexes%iv_sourcessteps), fac(privateindexes%iv_sourcessteps)
-   real(dl) xf
-   real(dl) qmax_int
-   integer bes_ix,n, bes_index(privateindexes%iv_sourcessteps)
-   integer custom_source_off, s_ix
-   integer nwin
-   real(dl) :: BessIntBoost
-   real(dl) :: temp_sum1, temp_sum2, temp_sum3
-   integer :: startloopidx, endloopidx
-
    BessIntBoost = datasb%cp_accuracy_boost*datasb%cp_accuracy_bessintboost
    custom_source_off = datasb%s_num_redshiftwindows + datasb%s_num_extra_redshiftwindows + 4
 
@@ -296,6 +262,6 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
      !ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
    end do
 
-end subroutine DoFlatIntegration
+end subroutine SourceToTransfers
 
 ! END OPENACC
