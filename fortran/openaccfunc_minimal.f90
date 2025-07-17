@@ -48,8 +48,8 @@ subroutine SourceToTransfers(datasb, &
    xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin)
    !IVSource_q)
 #ifdef USEACC
-!$acc routine vector 
-!acc routine 
+!acc routine vector 
+!$acc routine 
 #endif
 !    use CAMBmain
 !    use results
@@ -164,7 +164,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
    IVSource_q)
 #ifdef USEACC
-!$acc routine vector
+!$acc routine 
 #endif
 
 !    use CAMBmain
@@ -204,6 +204,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    BessIntBoost = datasb%cp_accuracy_boost*datasb%cp_accuracy_bessintboost
    custom_source_off = datasb%s_num_redshiftwindows + datasb%s_num_extra_redshiftwindows + 4
 
+   !$acc loop vector
    do j=1,privateindexes%iv_sourcessteps !Precompute arrays for this k
       xf=abs(privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(j)))
       bes_index(j)=statbesseindexof (datasb%b_count, &
@@ -215,6 +216,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
       fac(j)=fac(j)**2*aa(j)/6
    end do
 
+   !$acc loop vector
    do j=1,max_bessels_l_indexin
      if (ThisCT%ls%l(j) > llmax) return
      xlim=xlimfracin*ThisCT%ls%l(j)
@@ -236,7 +238,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    
      qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/datasb%s_tau0*1.2
      DoInt = .not. datasb%cp_want_scalars .or. privateindexes%iv_q < qmax_int
-   
+
      if (DoInt) then
        startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
            datasb%s_npoints, datasb%s_Highest, tmin)
@@ -245,7 +247,6 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
    
        ! Apply reduction to scalar temporaries in the n-loop
        ! if uysiing GNU
-       !acc parallel loop reduction(+:temp_sum1, temp_sum2, temp_sum3) 
        !$acc loop reduction(+:temp_sum1, temp_sum2, temp_sum3) 
        do n=startloopidx,endloopidx
          a2=aa(n)
@@ -281,16 +282,10 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
        end if
      end if
    
-     ! This final update might need !$acc atomic update if multiple 'j' iterations
-     ! (gangs) could write to the same elements of ThisCT%Delta_p_l_k simultaneously.
-     ! However, this is a separate issue from the error reported for 'sums(:)'.
-     !$acc atomic update
      ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) = &
        ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) + temp_sum1
-     !$acc atomic update
      ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) = &
        ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) + temp_sum2
-     !$acc atomic update
      ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) = & 
        ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) + temp_sum3
      !ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
