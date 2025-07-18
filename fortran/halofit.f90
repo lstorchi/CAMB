@@ -614,7 +614,9 @@
                 if (global_error_flag/=0) return
 
                 !Loop over k values and calculate P(k)
+#ifndef USEACC
                 !$OMP PARALLEL DO DEFAULT(SHARED), private(k,plin,pfull,p1h,p2h)
+#endif
                 DO i=1,nk
                     k=exp(CAMB_Pk%log_kh(i))
                     plin=p_lin(k,z,0,cosi)
@@ -627,8 +629,9 @@
                         p_num(i,j)=pfull
                     END IF
                 END DO
+#ifndef USEACC
                 !$OMP END PARALLEL DO
-
+#endif
             END DO
 
         ELSE
@@ -638,14 +641,18 @@
             if (global_error_flag/=0) return
 
             !Loop over k values and calculate P(k)
+#ifndef USEACC
             !$OMP PARALLEL DO DEFAULT(SHARED), private(k,plin,pfull,p1h,p2h)
+#endif
             DO i=1,nk
                 k=exp(CAMB_Pk%log_kh(i))
                 plin=p_lin(k,z,0,cosi)
                 CALL this%halomod(k,p1h,p2h,pfull,plin,lut,cosi)
                 CAMB_Pk%nonlin_ratio(i,j)=sqrt(pfull/plin)
             END DO
+#ifndef USEACC
             !$OMP END PARALLEL DO
+#endif
 
         END IF
 

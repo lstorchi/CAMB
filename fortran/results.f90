@@ -1228,8 +1228,9 @@
     real(dl), intent(in) :: z(n)
     real(dl), intent(in), optional :: tol
     integer i
-
+#ifndef USEACC
     !$OMP PARALLEL DO DEFAULT(SHARED),SCHEDULE(STATIC)
+#endif
     do i = 1, n
         if (i==1) then
             arr(i) = this%DeltaTime(0._dl, 1/(1+z(1)), tol)
@@ -1243,7 +1244,9 @@
             end if
         end if
     end do
+#ifndef USEACC
     !$OMP END PARALLEL DO
+#endif
     do i = 2, n
         arr(i) = arr(i)  + arr(i-1)
     end do
@@ -2374,15 +2377,18 @@
     allocate(dt(ninverse+nlin))
     allocate(taus(nthermo), xe_a(nthermo))
 
+#ifndef USEACC
     !$OMP PARALLEL SECTIONS DEFAULT(SHARED)
     !$OMP SECTION
+#endif
     call CP%Recomb%Init(State,WantTSpin=CP%Do21cm)    !almost all the time spent here
 
     if (CP%Evolve_delta_xe) this%recombination_saha_tau  = State%TimeOfZ(CP%Recomb%get_saha_z(), tol=1e-4_dl)
     if (CP%Evolve_baryon_cs .or. CP%Evolve_delta_xe .or. CP%Evolve_delta_Ts .or. CP%Do21cm) &
         this%recombination_Tgas_tau = State%TimeOfz(1/CP%Recomb%min_a_evolve_Tm-1, tol=1e-4_dl)
-
+#ifndef USEACC
     !$OMP SECTION
+#endif
     !Do other stuff while recombination calculating
     awin_lens1=0
     awin_lens2=0
@@ -2517,7 +2523,9 @@
             end if
         end associate
     end do
+#ifndef USEACC
     !$OMP END PARALLEL SECTIONS
+#endif
 
     if (global_error_flag/=0) return
 
@@ -2712,15 +2720,19 @@
         write (*,*) 'taurst, taurend = ', State%taurst, State%taurend
     end if
 
+#ifndef USEACC
     !$OMP PARALLEL SECTIONS DEFAULT(SHARED)
     !$OMP SECTION
+#endif
     call splder(this%dotmu,this%ddotmu,nthermo,spline_data)
     call splder(this%ddotmu,this%dddotmu,nthermo,spline_data)
     call splder(this%dddotmu,this%ddddotmu,nthermo,spline_data)
     if (CP%want_zstar .or. CP%WantDerivedParameters) &
         this%z_star = State%binary_search(noreion_optdepth, 1.d0, zstar_min, zstar_max, &
         & 1d-3/background_boost, 100._dl*z_scale, 4000._dl*z_scale)
+#ifndef USEACC
     !$OMP SECTION
+#endif
     call splder(this%cs2,this%dcs2,nthermo,spline_data)
     call splder(this%emmu,this%demmu,nthermo,spline_data)
     call splder(this%adot,this%dadot,nthermo,spline_data)
@@ -2728,7 +2740,9 @@
     if (CP%want_zdrag .or. CP%WantDerivedParameters) &
         this%z_drag = State%binary_search(dragoptdepth, 1.d0, 800*z_scale, &
         & max(zstar_max*1.1_dl,1200._dl*z_scale), 2d-3/background_boost, 100.d0*z_scale, 4000._dl*z_scale)
+#ifndef USEACC
     !$OMP SECTION
+#endif
     this%ScaleFactor(:) = this%scaleFactor/taus !a/tau
     this%dScaleFactor(:) = (this%adot - this%ScaleFactor)*this%dlntau !derivative of a/tau
     if (State%num_redshiftwindows >0) then
@@ -2742,7 +2756,9 @@
         end do
     end if
     call this%SetTimeSteps(State,State%TimeSteps)
+#ifndef USEACC
     !$OMP END PARALLEL SECTIONS
+#endif
 
     if (State%num_redshiftwindows>0) then
         !$OMP PARALLEL DO DEFAULT(SHARED),SCHEDULE(STATIC)
@@ -2755,28 +2771,35 @@
 
     if (CP%WantDerivedParameters) then
         associate(ThermoDerivedParams => State%ThermoDerivedParams)
+#ifndef USEACC
             !$OMP PARALLEL SECTIONS DEFAULT(SHARED)
             !$OMP SECTION
+#endif
             ThermoDerivedParams( derived_Age ) = State%DeltaPhysicalTimeGyr(0.0_dl,1.0_dl)
             rstar =State%sound_horizon(this%z_star)
             ThermoDerivedParams( derived_rstar ) = rstar
             DA = State%AngularDiameterDistance(this%z_star)/(1/(this%z_star+1))
             ThermoDerivedParams( derived_zdrag ) = this%z_drag
+#ifndef USEACC
             !$OMP SECTION
+#endif
             rs =State%sound_horizon(this%z_drag)
             ThermoDerivedParams( derived_rdrag ) = rs
             ThermoDerivedParams( derived_kD ) =  &
                 sqrt(1.d0/(Integrate_Romberg_ddamping_da(State, 1d-8, 1/(this%z_star+1), 1d-6)/6))
                 !sqrt(1.d0/(Integrate_Romberg(State,ddamping_da, 1d-8, 1/(this%z_star+1), 1d-6)/6))
+#ifndef USEACC
             !$OMP SECTION
+#endif
             ThermoDerivedParams( derived_zEQ ) = State%z_eq
             a_eq = 1/(1+State%z_eq)
             ThermoDerivedParams( derived_kEQ ) = 1/(a_eq*dtauda(State,a_eq))
             rs_eq = State%sound_horizon(State%z_eq)
             tau_eq = State%timeOfz(State%z_eq)
+#ifndef USEACC
             !$OMP SECTION
             !$OMP END PARALLEL SECTIONS
-
+#endif
             ThermoDerivedParams( derived_zstar ) = this%z_star
             ThermoDerivedParams( derived_thetastar ) = 100*rstar/DA
             ThermoDerivedParams( derived_DAstar ) = DA/1000
