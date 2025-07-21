@@ -430,8 +430,8 @@
         IVSource_qrows = State%TimeSteps%npoints
         IVSource_qcols = ThisSources%SourceNum
         !allocate(IVSource_q(IVSource_qrows, IVSource_qcols))
-        !print *, "                       IVSource_qrows: ", IVSource_qrows
-        !print *, "                       IVSource_qcols: ", IVSource_qcols
+        print *, "                       IVSource_qrows: ", IVSource_qrows
+        print *, "                       IVSource_qcols: ", IVSource_qcols
         !print *, "                 allocated IVSource_q: ", allocated(IVSource_q), " size " , size(IVSource_q)
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
