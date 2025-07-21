@@ -281,11 +281,14 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
          temp_sum3 = 0.0_dl
        end if
      end if
-   
+     
+     !acc atomic update
      ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) = &
        ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) + temp_sum1
+     !acc atomic update
      ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) = &
        ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) + temp_sum2
+     !acc atomic update
      ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) = & 
        ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) + temp_sum3
      !ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
