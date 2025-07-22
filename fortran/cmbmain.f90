@@ -472,6 +472,8 @@
         ! the methods as standalone function 
         ! should use something like  ACC PARALLEL LOOP GANG, VECTOR(4) 
 
+        !$ACC ENTER DATA COPYIN(ThisSources)
+        !$ACC ENTER DATA COPYIN(ThisCT)
         !$ACC PARALLEL LOOP GANG &
         !$acc   private(q_ix) &
         !$acc   copyin(ThisCT%ls%l, ThisCT%q%points, &
@@ -500,6 +502,8 @@
         end do !q loop
 #ifdef USEACC
         !$ACC END PARALLEL LOOP
+        !$ACC EXIT DATA DELETE(ThisSources)
+        !$ACC EXIT DATA DELETE(ThisCT)
 #else
         !$OMP END PARALLEL DO
 #endif

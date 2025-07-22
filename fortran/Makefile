@@ -94,8 +94,8 @@ else
     #  nvidia-smi --query-gpu=compute_cap --format=csv
     # ls /opt/nvidia/hpc_sdk/Linux_x86_64/25.1/cuda/ to see cuda version
     ifeq "$(OPENACC)" "yes"
-      #COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6,deepcopy -Minfo=accel -cuda
-      COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=deepcopy -Minfo=accel 
+      #COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6 -Minfo=accel -cuda
+      COMMON_FFLAGS = -DONLYFLAT -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu -Minfo=accel 
       #COMMON_FFLAGS = -MMD -DUSEACC -cpp -Mextend -acc=gpu -gpu=cc75,cuda12.6 -Minfo=accel -cuda
     else
       COMMON_FFLAGS = -DONLYFLAT -MMD -cpp -Mextend -Minform=warn -Mextend
