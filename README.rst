@@ -16,6 +16,77 @@ CAMB
 .. image:: https://mybinder.org/badge_logo.svg
   :target: https://mybinder.org/v2/gh/cmbant/CAMB/HEAD?filepath=docs%2FCAMBdemo.ipynb
 
+Installation of current gCAMB version
+=====================================================
+Clode the repository:
+
+```
+$ git clone https://github.com/lstorchi/CAMB.git
+Cloning into 'CAMB'...
+remote: Enumerating objects: 8834, done.
+remote: Counting objects: 100% (3096/3096), done.
+remote: Compressing objects: 100% (375/375), done.
+remote: Total 8834 (delta 2956), reused 2721 (delta 2721), pack-reused 5738 (from 2)
+Receiving objects: 100% (8834/8834), 112.37 MiB | 35.22 MiB/s, done.
+Resolving deltas: 100% (6557/6557), done.
+```
+
+checkout the proper branch: 
+
+```
+$ cd CAMB/
+$ git checkout gpuport
+branch 'gpuport' set up to track 'origin/gpuport'.
+Switched to a new branch 'gpuport'
+```
+
+Clone forutils:
+
+```
+$ git clone  https://github.com/lstorchi/forutils.git
+Cloning into 'forutils'...
+remote: Enumerating objects: 451, done.
+remote: Counting objects: 100% (91/91), done.
+remote: Compressing objects: 100% (68/68), done.
+remote: Total 451 (delta 54), reused 56 (delta 23), pack-reused 360 (from 1)
+Receiving objects: 100% (451/451), 138.92 KiB | 2.67 MiB/s, done.
+Resolving deltas: 100% (288/288), done.
+```
+
+and checkout the proper branch: 
+
+```
+$ cd forutils/
+$ git checkout gpuport
+branch 'gpuport' set up to track 'origin/gpuport'.
+Switched to a new branch 'gpuport'
+```
+
+Now we can compile the code using the nvfortran compiler:
+
+```
+$ cd ../fortran/
+$ make 
+make -C Release --no-print-directory -f../Makefile FORUTILS_SRC_DIR=.. libforutils.a
+nvfortran -DUSEACC -cpp -Mextend -acc=gpu -gpu=deepcopy -Minfo=accel  -openmp -O3 -o MiscUtils.o -c ../Mi
+scUtils.f90
+.........
+```
+
+test the code:
+
+```
+$ export OMP_NUM_THREADS=32
+$ export NVCOMPILER_ACC_CUDA_HEAPSIZE=3G
+$ time ./camb  params_high.ini
+ Start reading params_high.ini
+ Read number_of_threads            0
+ Read DebugParam    0.000
+........
+```
+
+you can check the exectution of the code on the GPU via nvidia-smi -l 1
+
 Description and installation
 =============================
 
