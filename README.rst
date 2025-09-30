@@ -70,22 +70,17 @@ $ make
 make -C Release --no-print-directory -f../Makefile FORUTILS_SRC_DIR=.. libforutils.a
 nvfortran -DUSEACC -cpp -Mextend -acc=gpu -gpu=deepcopy -Minfo=accel  -openmp -O3 -o MiscUtils.o -c ../Mi
 scUtils.f90
-.........
 ```
 
-test the code:
+run the code:
 
 ```
 $ export OMP_NUM_THREADS=32
 $ export NVCOMPILER_ACC_CUDA_HEAPSIZE=3G
 $ time ./camb  params_high.ini
- Start reading params_high.ini
- Read number_of_threads            0
- Read DebugParam    0.000
-........
 ```
 
-you can check the exectution of the code on the GPU via nvidia-smi -l 1
+you can check the execution of the code on the GPU via nvidia-smi -l 1
 
 Description and installation
 =============================
