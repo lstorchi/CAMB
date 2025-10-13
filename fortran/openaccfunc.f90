@@ -155,7 +155,9 @@ subroutine SourceToTransfers(datasb, &
     do_bispectrumin, max_bessels_l_indexin, &
     xlimfracin, xlimminin, ajlin, ajlprin, DebugEvolutionin) 
     !IVSource_q)
+ 
 #ifdef USEACC
+!acc routine vector 
 !$acc routine 
 #endif
 !    use CAMBmain
@@ -223,7 +225,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     type(datastatebessel) :: datasb
     logical :: DebugEvolutionin
     type(PrivateIdxs) :: privateindexes
-    integer :: ixunit
+    integer :: ixunit, local_step
     !double precision , allocatable, dimension(:,:) :: IVSource_q
     double precision , dimension(IVSQROWS,IVSQCOLS) :: IVSource_q
 
@@ -258,16 +260,18 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
 
     !Interpolating the source as a function of time for the present
     !wavelength.
+    local_step = 2
     step=2
+    !$acc loop vector reduction(max:local_step)
     do i=2, datasb%s_npoints
         xf=privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(i))
         
         if (datasb%cp_want_tensors) then
             if (privateindexes%iv_q*datasb%s_points(i) < max_etak_tensorin.and. xf > 1.e-8_dl) then
-                step=i
                 IVSource_q(i,:) =a0*ScaledSrcin(klo,:,i)+&
                     b0*ScaledSrcin(khi,:,i)+(a03 *ddScaledSrcin(klo,:,i)+ &
                     b03*ddScaledSrcin(khi,:,i)) *ho2o6
+                local_step = i
             else
                 IVSource_q(i,:) = 0.0_dl
             end if
@@ -276,10 +280,10 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
         if (datasb%cp_want_vectors) then
             if (privateindexes%iv_q*datasb%s_points(i) < max_etak_vectorin.and. &
               xf > 1.e-8_dl) then
-                step=i
                 IVSource_q(i,:) = a0*ScaledSrcin(klo,:,i) + & 
                   b0*ScaledSrcin(khi,:,i)+(a03 * ddScaledSrcin(klo,:,i)+ &
                   b03*ddScaledSrcin(khi,:,i)) *ho2o6
+                local_step = i
             else
                 IVSource_q(i,:) = 0.0_dl
             end if
@@ -289,15 +293,18 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
             if ((DebugEvolutionin .or. WantLateTimein .or. &
                 privateindexes%iv_q*datasb%s_points(i) < max_etak_scalarin) &
                 .and. xf > 1.e-8_dl) then
-                step=i
                 IVSource_q(i,:) = a0 * ScaledSrcin(klo,:,i) +  & 
                   b0 * ScaledSrcin(khi,:,i) + (a03*ddScaledSrcin(klo,:,i) + &
                   b03 * ddScaledSrcin(khi,:,i)) * ho2o6
+                local_step = i
             else
                 IVSource_q(i,:) = 0.0_dl
             end if
         end if
     end do
+    !$acc end loop
+    
+    step = local_step 
     privateindexes%iv_sourcessteps = step
 
 #ifndef ONLYFLAT  
@@ -469,6 +476,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
 
     !     Find the position in the xx table for the x correponding to each
     !     timestep
+    !$acc loop vector
     do j=1,privateindexes%iv_sourcessteps !Precompute arrays for this k
         xf=abs(privateindexes%iv_q*(datasb%s_tau0-datasb%s_points(j)))
         ! in case need to use a statein as input
@@ -485,6 +493,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     end do
     !print *, "Done first indexof"
 
+    !$acc loop vector
     do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
         xlim=xlimfracin*ThisCT%ls%l(j)

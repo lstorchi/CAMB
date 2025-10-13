@@ -432,6 +432,8 @@
         !allocate(IVSource_q(IVSource_qrows, IVSource_qcols))
         print *, "                       IVSource_qrows: ", IVSource_qrows
         print *, "                       IVSource_qcols: ", IVSource_qcols
+        print *, "               datasb%cp_want_tensors: ", datasb%cp_want_tensors
+        print *, "               datasb%cp_want_scalars: ", datasb%cp_want_scalars
         !print *, "                 allocated IVSource_q: ", allocated(IVSource_q), " size " , size(IVSource_q)
         !print *, "                allocated IV%Source_q: ", allocated(IV%Source_q), " size " , size(IV%Source_q)
         !print *, "              allocated IV%ddSource_q: ", allocated(IV%ddSource_q), " size " , size(IV%ddSource_q)
@@ -2550,6 +2552,7 @@
 
     end subroutine InterpolateCls
 
-#include "openaccfunc_minimal.f90"
+!#include "openaccfunc_minimal.f90"
+#include "openaccfunc.f90"
 
     end module CAMBmain
