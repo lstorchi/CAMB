@@ -157,8 +157,8 @@ subroutine SourceToTransfers(datasb, &
     !IVSource_q)
  
 #ifdef USEACC
-!acc routine vector 
-!$acc routine 
+!$acc routine vector 
+!acc routine 
 #endif
 !    use CAMBmain
 !    use results
@@ -208,7 +208,7 @@ subroutine InterpolateSources(ThisSourcesin, ScaledSrcin, &
     WantLateTimein, max_etak_scalarin, datasb, DebugEvolutionin, &
     privateindexes, IVSource_q)
 #ifdef USEACC
-!$acc routine 
+!$acc routine vector
 #endif
 
 !    use CAMBmain
@@ -324,7 +324,7 @@ subroutine DoSourceIntegration(ThisCT, ThisSourcesin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q) !for particular wave number q
 #ifdef USEACC
-!$acc routine 
+!$acc routine vector
 #endif
 
 !    use CAMBmain
@@ -410,8 +410,8 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     datasb, xlimfracin, xlimminin, ajlin, ajlprin, privateindexes, &
     IVSource_q)
 #ifdef USEACC
-!acc routine vector
-!$acc routine
+!$acc routine vector
+!acc routine
 #endif
 
 !    use CAMBmain
