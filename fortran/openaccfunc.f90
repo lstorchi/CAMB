@@ -448,12 +448,19 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     integer custom_source_off, s_ix
     integer nwin
     real(dl) :: BessIntBoost
+    real(dl) :: temp_sum1, temp_sum2, temp_sum3, temp_sum4, temp_sum5, &
+        temp_sum6, temp_sum7, temp_sum8, temp_sum9, temp_sum10
 #ifndef USEACC
     integer :: omp_thread_num, thread_id
 #endif
 
     !integer :: tocompare
     integer :: startloopidx, endloopidx
+
+    if (datasb%ttsources_sourcenum.gt.10) then
+       ! nee to increase temp sum or find a different approach
+       return
+    endif
 
 #ifndef USEACC
     omp_thread_num = omp_get_max_threads()
@@ -493,7 +500,7 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
     end do
     !print *, "Done first indexof"
 
-    !$acc loop vector
+    !$acc loop vector 
     do j=1,max_bessels_l_indexin
         if (ThisCT%ls%l(j) > llmax) return
         xlim=xlimfracin*ThisCT%ls%l(j)
@@ -516,7 +523,18 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
             tmin = max(tmin, datasb%s_tau_start_redshiftwindows)
 
         if (tmax < datasb%s_points(2)) exit
-        sums = 0
+        !sums = 0
+
+        temp_sum1 = 0.0_dl
+        temp_sum2 = 0.0_dl
+        temp_sum3 = 0.0_dl
+        temp_sum4 = 0.0_dl 
+        temp_sum5 = 0.0_dl
+        temp_sum6 = 0.0_dl
+        temp_sum7 = 0.0_dl
+        temp_sum8 = 0.0_dl
+        temp_sum9 = 0.0_dl
+        temp_sum10 = 0.0_dl
 
         !As long as we sample the source well enough, it is sufficient to
         !interpolate the Bessel functions only
@@ -538,8 +556,10 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                     *ajlprin(bes_ix,j)+(2-a2)*ajlprin(bes_ix+1,j))* fac(n)) !cubic spline
 
                 J_l = J_l*datasb%s_dpoints(n)
-                sums(1) = sums(1) + IVSource_q(n,1)*J_l
-                sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                !sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                temp_sum1 = temp_sum1 + IVSource_q(n,1)*J_l
+                !sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                temp_sum2 = temp_sum2 + IVSource_q(n,2)*J_l
             end do
         else
             qmax_int= max(850,ThisCT%ls%l(j))*3*BessIntBoost/datasb%s_tau0*1.2
@@ -566,9 +586,12 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                        J_l = J_l*datasb%s_dpoints(n)
 
                        !The unwrapped form is faster
-                       sums(1) = sums(1) + IVSource_q(n,1)*J_l
-                       sums(2) = sums(2) + IVSource_q(n,2)*J_l
-                       sums(3) = sums(3) + IVSource_q(n,3)*J_l
+                       !sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                       temp_sum1 = temp_sum1 + IVSource_q(n,1)*J_l
+                       !sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                       temp_sum2 = temp_sum2 + IVSource_q(n,2)*J_l
+                       !sums(3) = sums(3) + IVSource_q(n,3)*J_l
+                       temp_sum3 = temp_sum3 + IVSource_q(n,3)*J_l
                    end do
                 else
                     if (datasb%s_num_redshiftwindows>0) then
@@ -598,16 +621,35 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                            J_l = J_l*datasb%s_dpoints(n)
 
                            !The unwrapped form is faster
-                           sums(1) = sums(1) + IVSource_q(n,1)*J_l
-                           sums(2) = sums(2) + IVSource_q(n,2)*J_l
-                           sums(3) = sums(3) + IVSource_q(n,3)*J_l
+                           !sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                           temp_sum1 = temp_sum1 + IVSource_q(n,1)*J_l
+                           !sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                           temp_sum2 = temp_sum2 + IVSource_q(n,2)*J_l
+                           !sums(3) = sums(3) + IVSource_q(n,3)*J_l
+                           temp_sum3 = temp_sum3 + IVSource_q(n,3)*J_l
                            if (n >= nwin) then
-                               do s_ix = 4, datasb%ttsources_sourcenum
-                                   sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l
-                               end do
+                               !do s_ix = 4, datasb%ttsources_sourcenum
+                               !    sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l
+                               !end do
+                               if (datasb%ttsources_sourcenum.ge.4) &
+                                 temp_sum4 = temp_sum4 + IVSource_q(n,4)*J_l
+                               if (datasb%ttsources_sourcenum.ge.5) &
+                                 temp_sum5 = temp_sum5 + IVSource_q(n,5)*J_l
+                               if (datasb%ttsources_sourcenum.ge.6) &
+                                 temp_sum6 = temp_sum6 + IVSource_q(n,6)*J_l
+                               if (datasb%ttsources_sourcenum.ge.7) &
+                                 temp_sum7 = temp_sum7 + IVSource_q(n,7)*J_l
+                               if (datasb%ttsources_sourcenum.ge.8) &
+                                 temp_sum8 = temp_sum8 + IVSource_q(n,8)*J_l
+                               if (datasb%ttsources_sourcenum.ge.9) &
+                                 temp_sum9 = temp_sum9 + IVSource_q(n,9)*J_l
+                               if (datasb%ttsources_sourcenum.ge.10) &
+                                 temp_sum10 = temp_sum10 + IVSource_q(n,10)*J_l
                            end if
                        end do
                     else
+                        stop ! see TODO
+                        
                         startloopidx = statbesseindexof (datasb%s_count, datasb%s_R, &
                             datasb%s_npoints, datasb%s_Highest, tmin)
                         endloopidx = min(privateindexes%iv_sourcessteps,statbesseindexof (datasb%s_count, &
@@ -624,18 +666,27 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                            J_l = J_l*datasb%s_dpoints(n)
 
                            !The unwrapped form is faster
-                           sums(1) = sums(1) + IVSource_q(n,1)*J_l
-                           sums(2) = sums(2) + IVSource_q(n,2)*J_l
-                           sums(3) = sums(3) + IVSource_q(n,3)*J_l
-                           sums(custom_source_off) = sums(custom_source_off) +  IVSource_q(n,custom_source_off)*J_l
+                           !sums(1) = sums(1) + IVSource_q(n,1)*J_l
+                           temp_sum1 = temp_sum1 + IVSource_q(n,1)*J_l
+                           !sums(2) = sums(2) + IVSource_q(n,2)*J_l
+                           temp_sum2 = temp_sum2 + IVSource_q(n,1)*J_l
+                           !sums(3) = sums(3) + IVSource_q(n,3)*J_l
+                           temp_sum3 = temp_sum3 + IVSource_q(n,1)*J_l
+                           
+                           ! TODO
+                           !sums(custom_source_off) = sums(custom_source_off) +  IVSource_q(n,custom_source_off)*J_l
+                           !temp_sum15 = temp_sum15 +  IVSource_q(n,custom_source_off)*J_l
+
                            if (n >= nwin) then
-                               do s_ix = 4, datasb%ttsources_non_custom_sources_num
-                                   sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l
-                               end do
+                               !do s_ix = 4, datasb%ttsources_non_custom_sources_num
+                               !    sums(s_ix) = sums(s_ix) + IVSource_q(n,s_ix)*J_l
+                               !end do
                            end if
-                           do s_ix = custom_source_off+1, custom_source_off+datasb%cp_custom_sources_nam_custom -1
-                               sums(s_ix) = sums(s_ix)  + IVSource_q(n,s_ix)*J_l
-                           end do
+                           !do s_ix = custom_source_off+1, custom_source_off+datasb%cp_custom_sources_nam_custom -1
+                           !    sums(s_ix) = sums(s_ix)  + IVSource_q(n,s_ix)*J_l
+                           !end do
+
+
                        end do
                     end if
                 end if
@@ -650,10 +701,13 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                     !tocompare=State%TimeSteps%IndexOf(xf)
                     !n=statindexof(xf)
                     xf= (xf-datasb%s_points(n))/(datasb%s_points(n+1)-datasb%s_points(n))
-                    sums(3) = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
+                    !sums(3) = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
+                    !    sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/privateindexes%iv_q
+                    temp_sum3 = (IVSource_q(n,3)*(1-xf) + xf*IVSource_q(n+1,3))*&
                         sqrt(const_pi/2/(ThisCT%ls%l(j)+0.5_dl))/privateindexes%iv_q
                 else
-                    sums(3)=0
+                    !sums(3)=0
+                    temp_sum3 = 0
                 end if
             end if
             if (.not. DoInt .and. datasb%ttsources_non_custom_sources_num>3) then
@@ -678,16 +732,58 @@ subroutine DoFlatIntegration(ThisCT, llmax, ThisSourcesin, &
                             ajlprin(bes_ix + 1, j)) * fac(n)) !cubic spline
                         J_l = J_l * datasb%s_dpoints(n)
 
-                        sums(4) = sums(4) + IVSource_q(n, 4) * J_l
-                        do s_ix = 5, datasb%ttsources_non_custom_sources_num
-                            sums(s_ix) = sums(s_ix) + IVSource_q(n, s_ix) * J_l
-                        end do
+                        !sums(4) = sums(4) + IVSource_q(n, 4) * J_l
+                        temp_sum4 = temp_sum4 + IVSource_q(n, 4) * J_l 
+                        !do s_ix = 5, datasb%ttsources_non_custom_sources_num
+                        !    sums(s_ix) = sums(s_ix) + IVSource_q(n, s_ix) * J_l
+                        !end do
+                        if (datasb%ttsources_sourcenum.ge.4) &
+                          temp_sum4 = temp_sum4 + IVSource_q(n,4)*J_l
+                        if (datasb%ttsources_sourcenum.ge.5) &
+                          temp_sum5 = temp_sum5 + IVSource_q(n,5)*J_l
+                        if (datasb%ttsources_sourcenum.ge.6) &
+                          temp_sum6 = temp_sum6 + IVSource_q(n,6)*J_l
+                        if (datasb%ttsources_sourcenum.ge.7) &
+                          temp_sum7 = temp_sum7 + IVSource_q(n,7)*J_l
+                        if (datasb%ttsources_sourcenum.ge.8) &
+                          temp_sum8 = temp_sum8 + IVSource_q(n,8)*J_l
+                        if (datasb%ttsources_sourcenum.ge.9) &
+                          temp_sum9 = temp_sum9 + IVSource_q(n,9)*J_l
+                        if (datasb%ttsources_sourcenum.ge.10) &
+                          temp_sum10 = temp_sum10 + IVSource_q(n,10)*J_l
                     end do
                 end if
             end if
         end if
 
-        ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
+        !ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) = ThisCT%Delta_p_l_k(:,j,privateindexes%iv_q_ix) + sums
+        ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) = &
+          ThisCT%Delta_p_l_k(1, j, privateindexes%iv_q_ix) + temp_sum1
+        ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) = &
+          ThisCT%Delta_p_l_k(2, j, privateindexes%iv_q_ix) + temp_sum2
+        ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) = &
+          ThisCT%Delta_p_l_k(3, j, privateindexes%iv_q_ix) + temp_sum3
+        if (datasb%ttsources_sourcenum.ge.4) &
+           ThisCT%Delta_p_l_k(4,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(4,j,privateindexes%iv_q_ix) + temp_sum4
+        if (datasb%ttsources_sourcenum.ge.5) &
+           ThisCT%Delta_p_l_k(5,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(5,j,privateindexes%iv_q_ix) + temp_sum5
+        if (datasb%ttsources_sourcenum.ge.6) &
+           ThisCT%Delta_p_l_k(6,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(6,j,privateindexes%iv_q_ix) + temp_sum5
+        if (datasb%ttsources_sourcenum.ge.7) &
+           ThisCT%Delta_p_l_k(7,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(7,j,privateindexes%iv_q_ix) + temp_sum5
+        if (datasb%ttsources_sourcenum.ge.8) &
+           ThisCT%Delta_p_l_k(8,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(8,j,privateindexes%iv_q_ix) + temp_sum5
+        if (datasb%ttsources_sourcenum.ge.9) &
+           ThisCT%Delta_p_l_k(9,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(9,j,privateindexes%iv_q_ix) + temp_sum5
+        if (datasb%ttsources_sourcenum.ge.10) &
+           ThisCT%Delta_p_l_k(10,j,privateindexes%iv_q_ix) = &
+                ThisCT%Delta_p_l_k(10,j,privateindexes%iv_q_ix) + temp_sum5
      end do
 
 end subroutine DoFlatIntegration
